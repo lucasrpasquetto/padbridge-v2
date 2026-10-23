@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.log
+# saidas das sondas (rodadas no seu PC)
+sondas/saida_*
+# capturas de tela geradas pelos testes (as do README ficam em docs/)
+tests/tela*.png
+# arquivos de analise de uma faixa pessoal usados nos testes: nao vao para o repositorio
+tests/fixtures/anlz/
+# arquivos de terceiros (Pioneer DJ / AlphaTheta) nunca entram no repositorio
+*.midi.csv
+comandos.txt

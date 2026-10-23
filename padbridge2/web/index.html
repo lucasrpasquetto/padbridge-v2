@@ -1,0 +1,691 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>PadBridge v2</title>
+<style>
+:root{--bg:#0f1015;--card:#181a22;--line:#2b2e3b;--txt:#f1f2f7;--mut:#9aa0b4;--ok:#06d6a0;--c1:#ef476f;--c2:#4361ee}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);font-family:system-ui,Segoe UI,Roboto,sans-serif;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+.slides{display:flex;width:200%;height:100%;transition:transform .28s ease;will-change:transform}
+.slides.vpads{transform:translateX(-50%)}
+@media (prefers-reduced-motion:reduce){.slides{transition:none}}
+html,body{overflow:hidden}
+.tela{flex:0 0 50%;width:50%;height:100%;position:relative;min-width:0}
+.padsview{background:var(--bg)}
+.padsview{overflow:hidden}
+#padshost{position:absolute;inset:0}
+.borda{position:absolute;top:0;bottom:0;width:22px;z-index:20;touch-action:none}
+.borda.dir{right:0}.borda.esq{left:0}
+.borda::after{content:"";position:absolute;top:50%;width:4px;height:64px;margin-top:-32px;border-radius:3px;background:#3a3e52;opacity:.9}
+.borda.dir::after{right:3px}.borda.esq::after{left:3px}
+.app{height:100%;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.7fr) minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto;gap:10px 12px;padding:12px 14px 6px}
+.lado{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;min-width:0;min-height:0}
+.lado[data-n="1"]{--c:var(--c1)}.lado[data-n="2"]{--c:var(--c2)}
+.rot{font-size:12px;letter-spacing:.14em;font-weight:700;color:var(--mut)}
+.rot b{color:var(--c)}
+.master{margin-left:10px;padding:1px 8px;border-radius:6px;border:1px solid transparent;font-weight:800;letter-spacing:.12em;color:var(--mut)}
+.master.sel{color:#06d6a0;border-color:#06d6a0;background:rgba(6,214,160,.12)}
+.topo{display:flex;gap:12px;align-items:flex-start;justify-content:space-between}
+.esq{min-width:0;flex:1}
+.dir{text-align:right;flex:none}
+.titulo{margin-top:6px;font-size:clamp(18px,2.4vw,28px);font-weight:800;line-height:1.1;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.artista{margin-top:4px;font-size:clamp(13px,1.6vw,18px);color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vazio .titulo{color:var(--mut);font-weight:600}
+.tempo{font-size:clamp(26px,3.6vw,42px);font-weight:800;font-variant-numeric:tabular-nums;line-height:1}
+.meta{margin-top:6px;display:flex;gap:8px;justify-content:flex-end}
+.chip{border:1px solid var(--line);border-radius:8px;padding:3px 10px;font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;text-align:left}
+.chip small{display:block;font-size:9px;letter-spacing:.12em;color:var(--mut);font-weight:600}
+.cuesbarra{position:relative;height:24px;flex:none;margin:0 0 -8px}
+.mk{position:absolute;bottom:0;display:flex;flex-direction:column;align-items:center;transform:translateX(-50%);line-height:1;pointer-events:none}
+.mk b{font-size:13px;font-weight:900;margin-bottom:1px;color:var(--k)}
+.mk i{width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:9px solid var(--k)}
+.barra{height:6px;border-radius:4px;background:#242736;overflow:hidden;flex:none}
+.barra i{display:block;height:100%;width:0;background:var(--c)}
+.stems{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;flex:none}
+.btn{display:flex;align-items:center;justify-content:center;min-height:max(54px,8vh);border-radius:10px;background:#242736;border:1px solid var(--line);color:var(--mut);font-weight:800;font-size:13px;letter-spacing:.04em;text-align:center;cursor:pointer;touch-action:none}
+.btn.on{filter:brightness(1.35);transform:scale(.97)}
+.stem{border-left:4px solid var(--k)}.stem.ativo{background:var(--k);border-color:var(--k);color:var(--t,#0e0f13)}
+.modo{border-left:4px solid #8d93a8;font-size:11px;line-height:1.15;flex-direction:column}
+.modo.solo{background:#8d93a8;color:#0e0f13}
+.pads{flex:1;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(2,1fr);gap:8px;min-height:90px}
+.pad{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:12px;background:#242736;border:2px solid var(--k);color:var(--mut);font-size:clamp(22px,3vw,34px);font-weight:900;touch-action:none;cursor:pointer}
+.pad small{font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;opacity:.85;min-height:14px}
+.pad.aceso{background:var(--k);color:var(--t,#0e0f13)}
+.pad.apagado{opacity:.45}
+.pad.on{filter:brightness(1.3);transform:scale(.96)}
+.centro{display:grid;grid-template-columns:1fr 1fr;gap:8px;min-width:0;min-height:0}
+.ondawrap{position:relative;min-height:0;border-radius:12px;background:#12141b;overflow:hidden;border-top:3px solid var(--c)}
+.ondawrap[data-n="1"]{--c:var(--c1)}.ondawrap[data-n="2"]{--c:var(--c2)}
+canvas.onda{position:absolute;inset:0;width:100%;height:100%;display:block}
+.tatual{position:absolute;top:6px;left:50%;transform:translateX(-50%);padding:2px 10px;border-radius:8px;background:rgba(15,16,21,.82);border:1px solid var(--line);font-size:clamp(16px,2vw,22px);font-weight:800;font-variant-numeric:tabular-nums;pointer-events:none;z-index:2}
+.ondamsg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--mut);font-size:14px;text-align:center;padding:0 12px;pointer-events:none}
+.ondamsg:empty{display:none}
+.rodape{grid-column:1/4;display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:12px;color:var(--mut);min-height:20px}
+#tc{padding:8px 16px;min-height:36px;border-radius:10px;background:#242736;border:1px solid var(--line);color:var(--txt);font-size:12px;font-weight:800;letter-spacing:.06em;cursor:pointer;touch-action:none}
+#aviso{color:#ffb703}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#555;margin-right:6px;vertical-align:middle}
+.dot.ok{background:var(--ok)}
+</style>
+</head>
+<body>
+<div class="slides" id="slides">
+<div class="tela">
+<div class="app" id="app">
+  <section class="lado vazio" data-n="1" id="d1" aria-label="Deck 1"><div class="info"></div><div class="cuesbarra" aria-hidden="true"></div><div class="barra"><i></i></div><div class="stems"></div><div class="pads"></div></section>
+  <div class="centro">
+    <div class="ondawrap" data-n="1" id="o1"><canvas class="onda" aria-label="Waveform do deck 1"></canvas><div class="tatual" aria-label="Tempo atual"></div><div class="ondamsg" role="status"></div></div>
+    <div class="ondawrap" data-n="2" id="o2"><canvas class="onda" aria-label="Waveform do deck 2"></canvas><div class="tatual" aria-label="Tempo atual"></div><div class="ondamsg" role="status"></div></div>
+  </div>
+  <section class="lado vazio" data-n="2" id="d2" aria-label="Deck 2"><div class="info"></div><div class="cuesbarra" aria-hidden="true"></div><div class="barra"><i></i></div><div class="stems"></div><div class="pads"></div></section>
+  <div class="rodape"><span><i class="dot" id="dot"></i><span id="st">conectando...</span></span><span><i class="dot" id="dotm"></i><span id="stm">MIDI: conectando...</span></span><span id="aviso" role="status"></span><span id="ms"></span><span id="tc" role="button" aria-label="Tela cheia">TELA CHEIA</span></div>
+</div>
+<div class="borda dir" id="bd" aria-label="Deslize para a esquerda: pads"></div>
+</div>
+<div class="tela padsview" id="padsview">
+  <div id="padshost"></div>
+  <div class="borda esq" id="be" aria-label="Deslize para a direita: decks"></div>
+</div>
+</div>
+<script>
+const seg=t=>{if(!t)return null;const m=/^(-?)(\d+):(\d{2})(?:\.(\d))?$/.exec(t);if(!m)return null;return (+m[2]*60+ +m[3]+(m[4]?+m[4]/10:0))};
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const mmss=ms=>{const s=Math.round(ms/1000);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
+const W={1:{cues:[]},2:{cues:[]}};   // por deck: onda, det, cues, pos, t0, tocando
+
+// ---------- cores / constantes ----------
+const PAL=['#ef476f','#f78c6b','#ffd166','#06d6a0','#26c6da','#4361ee','#9b5de5','#f15bb5','#8ac926','#ff9f1c','#2ec4b6','#c77dff','#ff6b6b','#4cc9f0','#b5e48c','#ffb703'];
+const CORES_STEM=['#ef476f','#ffd166','#4361ee','#06d6a0'];
+const STEMS=[{rot:'VOCAL',nota:0x10},{rot:'INST',nota:0x11},{rot:'BASS',nota:0x12},{rot:'DRUMS',nota:0x13}];
+const NOTA_MASTER=0x53;       // Master (canal do deck 0/1; estado volta em 12/13)
+const NOTA_MODO=0x56;         // ActivePartMuteSolo (global, canal 0)
+const PCH=[7,9];              // canal dos pads (deck 1, deck 2) - igual ao PadBridge v1
+const JAN=2,CUR=0.3,HZ=150;  // janela do zoom (s), posicao do cursor (30% do topo) e amostras/s do detalhe PWV5
+const corCue=c=>c.kind>0?PAL[(c.kind-1)%PAL.length]:'#9aa0b4';
+const letra=c=>c.kind>0?String.fromCharCode(64+c.kind):'M';
+const _lum=h=>{const c=[1,3,5].map(i=>parseInt(h.substr(i,2),16)/255).map(v=>v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4));return .2126*c[0]+.7152*c[1]+.0722*c[2]};
+const _cr=(a,b)=>(Math.max(a,b)+.05)/(Math.min(a,b)+.05);
+function textoPara(f){return _cr(_lum(f),_lum('#0e0f13'))>=_cr(_lum(f),_lum('#ffffff'))?'#0e0f13':'#ffffff'}
+
+// ---------- MIDI: usa a ponte do PadBridge v1 (porta 8765, ou ?midi=PORTA) ----------
+const PORTA_MIDI=(/[?&]midi=(\d+)/.exec(location.search)||[])[1]||'8765';
+let wm=null;const luz=[{},{}];     // luz[d][nota] = velocity vinda do Rekordbox
+const stemBtns=[[],[]],modoBtn=[null,null],padEls=[[],[]];
+function enviar(t,ch,nota,vel){if(wm&&wm.readyState===1){wm.send(t+','+ch+','+nota+','+vel);return true}return false}
+function segurar(el,decidir,extra){
+  let seg=false,ch=0,nota=0;
+  el.addEventListener('pointerdown',ev=>{
+    ev.preventDefault();try{el.setPointerCapture(ev.pointerId)}catch(_){}
+    if(seg)return;const x=decidir();if(!x)return;
+    seg=true;ch=x[0];nota=x[1];el.classList.add('on');enviar('on',ch,nota,127);
+    if(navigator.vibrate)navigator.vibrate(8);if(extra)extra();
+  });
+  const soltar=()=>{if(!seg)return;seg=false;el.classList.remove('on');enviar('rel',ch,nota,0)};
+  ['pointerup','pointercancel','lostpointercapture'].forEach(n=>el.addEventListener(n,soltar));
+}
+let FB=false;   // true depois que o Rekordbox informou o estado dos stems
+function feedback(ch,nota,vel){
+  const d=ch-12;if(d<0||d>1)return;const on=vel>0;luz[d][nota]=vel;
+  const k=STEMS.findIndex(s=>s.nota===nota);
+  if(k>=0){FB=true;const b=stemBtns[d][k];b._on=on;b.classList.toggle('ativo',on);return}
+  if(nota===NOTA_MODO){modoGlobal(on);return}
+  if(nota===NOTA_MASTER){MASTER[d+1]=on;const m=document.querySelector('#d'+(d+1)+' .master');if(m)m.classList.toggle('sel',on);return}
+  if(nota<8)aplicaPads(d);
+}
+window.__midiEnviar=(t,ch,nota,vel)=>enviar(t,ch,nota,vel);window.__midiOk=()=>!!(wm&&wm.readyState===1);
+function conectaMidi(){
+  const dm=document.getElementById('dotm'),sm=document.getElementById('stm');
+  wm=new WebSocket((location.protocol==='https:'?'wss://':'ws://')+location.hostname+':'+PORTA_MIDI+'/ws');
+  wm.onopen=()=>{dm.className='dot ok';sm.textContent='MIDI: ponte conectada'};
+  wm.onmessage=ev=>{const p=String(ev.data).split(',');if(p[0]==='st'){feedback(+p[1],+p[2],+p[3]);if(window.__padsFeedback)window.__padsFeedback(+p[1],+p[2],+p[3])}};
+  wm.onclose=()=>{dm.className='dot';sm.textContent='MIDI: ponte v1 fora do ar (porta '+PORTA_MIDI+')';setTimeout(conectaMidi,1500)};
+  wm.onerror=()=>{try{wm.close()}catch(x){}};
+}
+
+// ---------- painel de cada deck: stems + 8 pads de hot cue ----------
+function modoGlobal(solo){modoBtn.forEach(b=>b&&modoSolo(b,solo))}   // mute/solo e global: os dois botoes mostram sempre o mesmo
+function modoSolo(b,solo){b._solo=solo;b.classList.toggle('solo',solo);b.innerHTML='MODO<span>'+(solo?'SOLO':'MUTE')+'</span>'}
+function montaDeck(d){
+  const n=d+1,el=document.getElementById('d'+n);
+  const stems=el.querySelector('.stems'),pads=el.querySelector('.pads');
+  STEMS.forEach((s,k)=>{
+    const b=document.createElement('div');b.className='btn stem ativo';b.textContent=s.rot;b._on=true;
+    b.style.setProperty('--k',CORES_STEM[k]);b.style.setProperty('--t',textoPara(CORES_STEM[k]));stems.appendChild(b);stemBtns[d][k]=b;
+    segurar(b,()=>[PCH[d],s.nota],()=>{if(FB)return;b._on=!b._on;b.classList.toggle('ativo',b._on)});
+  });
+  const m=document.createElement('div');m.className='btn modo';modoSolo(m,false);stems.appendChild(m);modoBtn[d]=m;
+  segurar(m,()=>[0,NOTA_MODO],()=>{modoGlobal(!m._solo)});          // global: sempre canal 0
+  for(let i=0;i<8;i++){
+    const p=document.createElement('div');p.className='pad';p.style.setProperty('--k',PAL[i]);p.style.setProperty('--t',textoPara(PAL[i]));
+    p.innerHTML=String.fromCharCode(65+i)+'<small></small>';p.setAttribute('aria-label','Deck '+n+' hot cue '+String.fromCharCode(65+i));
+    pads.appendChild(p);padEls[d][i]=p;segurar(p,()=>[PCH[d],i]);
+  }
+  aplicaPads(d);
+}
+// pad aceso = existe hot cue gravado (banco de dados) ou o Rekordbox informou velocity > 0; mostra o tempo do cue
+function aplicaPads(d){
+  const w=W[d+1],achou={};(w.cues||[]).forEach(c=>{if(c.kind>=1&&c.kind<=8)achou[c.kind-1]=c});
+  const carregada=!!w.carregada,informado=Object.keys(luz[d]).some(k=>+k<8);
+  padEls[d].forEach((p,i)=>{
+    const acesa=!!achou[i]||luz[d][i]>0,sabe=carregada&&(w.cues_ok||informado);
+    p.classList.toggle('aceso',acesa);p.classList.toggle('apagado',!acesa&&sabe);
+    p.querySelector('small').textContent=achou[i]?mmss(achou[i].ms):'';
+  });
+}
+
+// ---------- dados dos decks ----------
+const MASTER={1:false,2:false};   // qual deck e o master no Rekordbox (estado vindo do MIDI: canal 12/13, nota 0x53)
+const mestre=n=>'<span class="master'+(MASTER[n]?' sel':'')+'" role="status" aria-label="Deck master">MASTER</span>';
+function desenha(n,d){
+  const el=document.getElementById('d'+n),v=!d||!d.carregada;
+  el.className='lado'+(v?' vazio':'');
+  const html=v?
+    '<div class="rot">DECK <b>'+n+'</b>'+mestre(n)+'</div><div class="titulo">Sem faixa carregada</div>':
+    '<div class="topo"><div class="esq"><div class="rot">DECK <b>'+n+'</b>'+mestre(n)+'</div><div class="titulo">'+esc(d.titulo)+'</div><div class="artista">'+esc(d.artista||'')+'</div></div>'+
+    '<div class="dir"><div class="tempo" aria-label="Tempo restante">'+esc((d.restante||'--:--').replace(/\.\d$/,''))+'</div>'+
+    '<div class="meta"><div class="chip"><small>BPM</small>'+(d.bpm!=null?d.bpm.toFixed(2):'--')+'</div>'+
+    '<div class="chip"><small>TOM</small>'+esc(d.tonalidade||'--')+'</div></div></div></div>';
+  const info=el.querySelector('.info');if(info._html!==html){info._html=html;info.innerHTML=html}
+  document.getElementById('o'+n).style.visibility=v?'hidden':'visible';
+  const w=W[n],pos=d?seg(d.decorrido):null,rest=d&&d.restante?seg(d.restante.replace('-','')):null;
+  const tat=document.querySelector('#o'+n+' .tatual'),tx=d&&d.decorrido?d.decorrido.replace(/\.\d$/,''):'';if(tat.textContent!==tx)tat.textContent=tx;
+  const antes=w.carregada;w.carregada=!v;if(antes!==w.carregada)aplicaPads(n-1);
+  if(v||pos==null){marcas(n);w.est=null;w.medido=null;w.tocando=false;el.querySelector('.barra i').style.width='0';return}
+  const agora=performance.now();
+  if(w.dur=rest!=null?pos+rest:null,w.medido==null||Math.abs(pos-w.medido)>3||pos<w.medido-0.05){        // faixa nova / seek: pula direto
+    w.est=pos;w.t_est=agora;w.tocando=false;w.medido=pos;w.ult=agora;
+  }else if(pos!==w.medido){                                                // andou: esta tocando
+    // a tela do Rekordbox so mostra decimos (e atrasa um pouco): em vez de pular para o valor lido, o relogio
+    // local segue andando e e puxado de leve para ele - o cursor nao treme nem da saltos
+    const atual=pos_agora(w),alvo=pos+0.05;
+    w.est=w.tocando&&atual!=null?atual+(alvo-atual)*0.2:alvo;w.t_est=agora;
+    w.tocando=true;w.medido=pos;w.ult=agora;
+  }
+  el.querySelector('.barra i').style.width=(w.dur?Math.min(100,pos/w.dur*100):0)+'%';
+  marcas(n);
+}
+// posicao exata para desenhar: relogio local desde a ultima leitura; se a leitura parar de mudar (pausa) congela
+function pos_agora(w){
+  if(w.est==null)return null;
+  if(!w.tocando)return w.est;
+  const t=Math.min(performance.now(),w.ult+450);        // sem novidade ha 0,45 s = pausou
+  return w.est+Math.max(0,t-w.t_est)/1000;
+}
+// marcas dos cues sobre a barra de progresso: seta para baixo + letra, na posicao (cue / duracao da faixa)
+function marcas(n){
+  const w=W[n],el=document.querySelector('#d'+n+' .cuesbarra'),dur=(w.onda&&w.onda.duracao)||w.dur;
+  const lista=dur&&w.carregada?(w.cues||[]):[];
+  const chave=dur?Math.round(dur)+'|'+lista.map(c=>c.kind+':'+c.ms).join(','):'';
+  if(el._chave===chave)return;el._chave=chave;
+  el.innerHTML=lista.map(c=>{const pc=Math.min(100,Math.max(0,c.ms/1000/dur*100));
+    return '<div class="mk" style="left:'+pc.toFixed(2)+'%;--k:'+corCue(c)+'">'+(c.kind>0?'<b>'+letra(c)+'</b>':'')+'<i></i></div>'}).join('');
+}
+function aplica(e){
+  const por={};(e.decks||[]).forEach(d=>por[d.n]=d);
+  desenha(1,por[1]);desenha(2,por[2]);
+  document.getElementById('aviso').textContent=e.erro?('Rekordbox: '+e.erro):'';
+  document.getElementById('ms').textContent=e.ms!=null?('leitura '+e.ms+' ms'):'';
+}
+function aplicaOnda(m){
+  const w=W[m.n];if(!w)return;
+  if(m.vazia){w.onda=null;w.det=null;w.fonte=null;w.cues=[];w.cues_ok=false;w.msg=''}
+  else if(m.pendente){w.onda=null;w.det=null;w.fonte=null;w.cues=[];w.cues_ok=false;w.msg='Carregando waveform...'}
+  else if(m.ok){w.onda=m;w.det=decodifica(m.detalhe);w.fonte=fonteDe(m,w.det);w.msg=''}
+  else{w.onda=null;w.det=null;w.fonte=null;w.msg='Sem waveform: '+(m.motivo||'')}
+  aplicaPads(m.n-1);marcas(m.n);padsCues(m.n);
+}
+// tempos dos hot cues para a tela de pads (indice 0 = A ... 11 = L)
+function padsCues(n){
+  if(!window.__padsCues)return;const t={};
+  (W[n].cues||[]).forEach(c=>{if(c.kind>=1&&c.kind<=12)t[c.kind-1]=mmss(c.ms)});
+  window.__padsCues(n-1,t);
+}
+function aplicaCues(m){const w=W[m.n];if(!w)return;w.cues=m.cues||[];w.cues_ok=true;aplicaPads(m.n-1);marcas(m.n);padsCues(m.n)}
+
+// ---------- waveform vertical: o tempo corre de baixo para cima (o futuro entra por baixo) ----------
+function cor(c){const r=(c>>6)&7,g=(c>>3)&7,b=c&7,f=v=>Math.round(60+Math.max(v,1)*195/7);return 'rgb('+f(r)+','+f(g)+','+f(b)+')'}
+function zoomY(n,ms){   // y (px CSS) de um instante (ms) no canvas do deck n; o cursor fica a CUR da altura, do topo
+  const cv=document.querySelector('#o'+n+' canvas'),pos=pos_agora(W[n])||0;
+  return cv.clientHeight*CUR+(ms/1000-pos)/JAN*cv.clientHeight;
+}
+function decodifica(b64){
+  if(!b64)return null;
+  const bin=atob(b64),u=new Uint16Array(bin.length>>1);
+  for(let i=0;i<u.length;i++)u[i]=(bin.charCodeAt(2*i)<<8)|bin.charCodeAt(2*i+1);
+  return u;
+}
+function prepara(cv){
+  const dpr=window.devicePixelRatio||1,cw=Math.max(1,Math.round(cv.clientWidth*dpr)),ch=Math.max(1,Math.round(cv.clientHeight*dpr));
+  if(cv.width!==cw||cv.height!==ch){cv.width=cw;cv.height=ch}
+  const g=cv.getContext('2d');g.clearRect(0,0,cw,ch);return {g,cw,ch,dpr};
+}
+// Fonte da waveform: alturas (0..1) e cores (r,g,b 0..255) por amostra, `taxa` amostras por segundo.
+// Vem do detalhe PWV5 (150/s) ou, sem ele, da visao geral (600 colunas).
+function fonteDe(o,det){
+  const f=v=>Math.round(60+Math.max(v,1)*195/7);
+  if(det){
+    const n=det.length,h=new Float32Array(n),r=new Uint8Array(n),g=new Uint8Array(n),b=new Uint8Array(n);
+    for(let i=0;i<n;i++){const v=det[i];h[i]=((v>>2)&31)/31;r[i]=f((v>>13)&7);g[i]=f((v>>10)&7);b[i]=f((v>>7)&7)}
+    return {n,taxa:HZ,h,r,g,b};
+  }
+  const n=o.alturas.length,h=new Float32Array(n),r=new Uint8Array(n),g=new Uint8Array(n),b=new Uint8Array(n);
+  for(let i=0;i<n;i++){const c=o.cores[i];h[i]=o.alturas[i]/31;r[i]=f((c>>6)&7);g[i]=f((c>>3)&7);b[i]=f(c&7)}
+  return {n,taxa:n/(o.duracao||1),h,r,g,b};
+}
+// Desenho suave: a altura e a cor sao interpoladas entre as amostras (nada de degraus de 8 bits), a forma e um
+// poligono espelhado com gradiente de cor ao longo do tempo, mais um nucleo mais claro por cima (profundidade).
+function pintaOnda(g,F,cw,ch,dpr,pos,yc,spp,meio){
+  if(!F)return;
+  const PASSO=Math.max(2,Math.round(2*dpr)),amax=cw*0.47;
+  const ns=PASSO*spp*F.taxa;                         // amostras por passo vertical
+  const ys=[],hs=[],rs=[],gs=[],bs=[];
+  for(let y=0;y<=ch+PASSO;y+=PASSO){
+    const f=(pos+(y-yc)*spp)*F.taxa;
+    if(f<0||f>F.n-1){ys.push(y);hs.push(-1);rs.push(0);gs.push(0);bs.push(0);continue}
+    let h,r,gg,b;
+    if(ns>1.5){                                       // muitas amostras por passo: pega o pico
+      const i0=Math.max(0,Math.floor(f-ns/2)),i1=Math.min(F.n-1,Math.ceil(f+ns/2));h=-1;
+      for(let i=i0;i<=i1;i++)if(F.h[i]>h){h=F.h[i];r=F.r[i];gg=F.g[i];b=F.b[i]}
+    }else{                                            // poucas: interpola
+      const i=Math.floor(f),j=Math.min(F.n-1,i+1),u=f-i;
+      h=F.h[i]+(F.h[j]-F.h[i])*u;r=F.r[i]+(F.r[j]-F.r[i])*u;gg=F.g[i]+(F.g[j]-F.g[i])*u;b=F.b[i]+(F.b[j]-F.b[i])*u;
+    }
+    ys.push(y);hs.push(h);rs.push(r);gs.push(gg);bs.push(b);
+  }
+  const forma=(esc,claro,alfa)=>{
+    let k=0;
+    while(k<ys.length){
+      while(k<ys.length&&hs[k]<0)k++;
+      let k1=k;while(k1<ys.length&&hs[k1]>=0)k1++;
+      if(k1-k>=2){
+        const ya=ys[k],yb=ys[k1-1],gr=g.createLinearGradient(0,ya,0,yb);
+        for(let m=k;m<k1;m++){
+          const mix=v=>Math.round(v+(255-v)*claro);
+          if((m-k)%4&&m!==k1-1)continue;      // a cor muda devagar: um ponto de cor a cada 4 passos basta
+          gr.addColorStop((ys[m]-ya)/(yb-ya),'rgb('+mix(rs[m])+','+mix(gs[m])+','+mix(bs[m])+')');
+        }
+        g.beginPath();
+        for(let m=k;m<k1;m++){const hh=Math.max(0.8*dpr,hs[m]*amax*esc);m===k?g.moveTo(meio-hh,ys[m]):g.lineTo(meio-hh,ys[m])}
+        for(let m=k1-1;m>=k;m--){const hh=Math.max(0.8*dpr,hs[m]*amax*esc);g.lineTo(meio+hh,ys[m])}
+        g.closePath();g.fillStyle=gr;g.globalAlpha=alfa;g.fill();
+      }
+      k=k1;
+    }
+  };
+  forma(1,0,0.92);          // corpo
+  forma(0.5,0.5,0.85);      // nucleo mais claro
+  g.globalAlpha=1;
+  // o que ja passou (acima do cursor) fica mais escuro; so onde ha onda (source-atop nao pinta fora dela)
+  g.globalCompositeOperation='source-atop';g.fillStyle='rgba(14,15,20,.5)';g.fillRect(0,0,cw,Math.round(yc));g.globalCompositeOperation='source-over';
+}
+function pinta(n){
+  const w=W[n],o=w.onda,wrap=document.getElementById('o'+n),msg=wrap.querySelector('.ondamsg');
+  const {g,cw,ch,dpr}=prepara(wrap.querySelector('canvas'));
+  if(!o||!o.alturas){msg.textContent=w.msg||'';return}
+  msg.textContent='';
+  const pos=pos_agora(w)||0,yc=ch*CUR,spp=JAN/ch,meio=cw/2;
+  pintaOnda(g,w.fonte,cw,ch,dpr,pos,yc,spp,meio);
+  g.globalAlpha=1;
+  // grade de batidas: inicio de compasso = linha larga e forte; demais batidas = tracinho no meio
+  const bat=o.batidas||[],bn=o.batida_n||[];
+  for(let i=0;i<bat.length;i++){
+    const t=bat[i]/1000;if(t<pos-CUR*JAN-1||t>pos+(1-CUR)*JAN+1)continue;
+    const y=yc+(t-pos)/JAN*ch,forte=bn[i]===1;
+    g.fillStyle=forte?'rgba(255,255,255,.6)':'rgba(255,255,255,.38)';
+    if(forte)g.fillRect(0,Math.round(y)-dpr,cw,Math.max(2,dpr*2));else g.fillRect(cw*0.32,Math.round(y),cw*0.36,Math.max(1,dpr));
+  }
+  // cues: linha + etiqueta com a letra; loop sombreado; memory cue = cinza com "M"
+  g.font='bold '+Math.round(13*dpr)+'px system-ui,sans-serif';g.textAlign='center';g.textBaseline='middle';
+  for(const c of w.cues||[]){
+    const y=yc+(c.ms/1000-pos)/JAN*ch,yf=c.fim!=null?yc+(c.fim/1000-pos)/JAN*ch:null;
+    if(yf!=null&&yf>0&&y<ch){g.fillStyle=corCue(c);g.globalAlpha=0.22;const a=Math.max(0,y);g.fillRect(0,a,cw,Math.min(ch,yf)-a);g.globalAlpha=1}
+    if(y<-20*dpr||y>ch+20*dpr)continue;
+    g.fillStyle=corCue(c);g.fillRect(0,Math.round(y)-dpr,cw,Math.max(2,dpr*2));
+    const bw=(c.kind>0?22:16)*dpr;g.fillRect(0,Math.round(y)-bw,bw,bw);
+    g.fillStyle=c.kind>0?'#111':'#fff';g.fillText(letra(c),bw/2,Math.round(y)-bw/2+dpr);
+  }
+  g.fillStyle='#fff';g.fillRect(0,Math.round(yc)-dpr,cw,Math.max(2,Math.round(dpr*2)));
+}
+function laco(){pinta(1);pinta(2);requestAnimationFrame(laco)}
+
+let ws;function conectar(){
+  ws=new WebSocket((location.protocol==='https:'?'wss://':'ws://')+location.host+'/ws');
+  ws.onopen=()=>{dot.className='dot ok';st.textContent='dados conectados'};
+  ws.onmessage=ev=>{try{const m=JSON.parse(ev.data);if(m.tipo==='onda')aplicaOnda(m);else if(m.tipo==='cues')aplicaCues(m);else aplica(m)}catch(x){}};
+  ws.onclose=()=>{dot.className='dot';st.textContent='sem conexao';setTimeout(conectar,1000)};
+  ws.onerror=()=>{try{ws.close()}catch(x){}};
+}
+const dot=document.getElementById('dot'),st=document.getElementById('st');
+// ---------- 2 telas: decks (inicial) e pads (PadBridge v1 dentro de um quadro); desliza da borda para trocar ----------
+const slides=document.getElementById('slides');
+function vai(pads){slides.classList.toggle('vpads',!!pads);window.__tela=pads?'pads':'decks'}
+window.__tela='decks';
+(function(){
+  // gesto: arrasta >70 px na horizontal (mais horizontal que vertical), comecando na borda ou em area sem botao
+  function gesto(el,sentido,destino,so_borda){
+    let x0=null,y0=null,id=null;
+    el.addEventListener('pointerdown',ev=>{
+      if(!so_borda&&ev.target.closest&&ev.target.closest('.btn,.pad,#tc'))return;
+      x0=ev.clientX;y0=ev.clientY;id=ev.pointerId;try{el.setPointerCapture(id)}catch(_){}
+    });
+    const fim=ev=>{
+      if(x0==null)return;const dx=ev.clientX-x0,dy=ev.clientY-y0;x0=null;
+      if(Math.abs(dx)>70&&Math.abs(dx)>Math.abs(dy)*1.5&&Math.sign(dx)===sentido)vai(destino);
+    };
+    el.addEventListener('pointerup',fim);el.addEventListener('pointercancel',()=>{x0=null});
+  }
+  gesto(document.getElementById('bd'),-1,true,true);            // borda direita: arrasta para a esquerda -> pads
+  gesto(document.querySelector('.tela:not(.padsview)'),-1,true,false);   // ou em qualquer area livre da tela dos decks
+  gesto(document.getElementById('be'),1,false,true);            // borda esquerda dos pads: arrasta para a direita -> decks
+})();
+/*PADS_INICIO*/
+(function(){
+const R=document.getElementById('padshost').attachShadow({mode:'open'});
+R.innerHTML=`<style>
+:host{--bg:#0e0f13;--panel:#181a21;--line:#2a2d38;--txt:#e8e9ee;--mut:#8a8fa3}
+*{box-sizing:border-box}
+:host{display:block;margin:0;height:100%;height:100dvh;background:var(--bg);color:var(--txt);font-family:system-ui,sans-serif;
+  overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+#app{height:100%;height:100dvh;overflow:hidden;display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px}
+.deck{overflow:hidden;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px;
+  display:flex;flex-direction:column;gap:8px;min-height:0}
+.topo{min-height:48px;display:flex;justify-content:space-between;align-items:center;font-size:12px;letter-spacing:.12em;color:var(--mut);font-weight:700}
+.row{display:flex;gap:6px}
+.btn{flex:1;min-height:0;border:1px solid var(--line);background:#222530;color:var(--txt);border-radius:10px;padding:13px 4px;font-size:13px;font-weight:700;text-align:center}
+.btn.sel{border-color:var(--c,#ffb703);color:var(--t,#14110a);background:var(--c,#ffb703)}
+.btn.on{background:#3a4a8a}
+.stems .btn{padding:18px 4px;font-size:14px}
+.pad.sel{background:var(--c);box-shadow:inset 0 0 0 3px #fff}
+.ganho{display:none;align-items:center;gap:10px;font-size:11px;color:var(--mut);font-weight:700;letter-spacing:.08em}
+.trilho{flex:1;height:44px;background:#12141a;border:1px solid var(--line);border-radius:12px;position:relative;overflow:hidden}
+.enche{position:absolute;left:0;top:0;bottom:0;width:0;background:#06d6a0}
+.btn.modo{border-left:4px solid #8d93a8;line-height:1.15;flex-direction:column;color:var(--mut)}.btn.modo .s{display:none}.btn.modo.sel .m{display:none}.btn.modo.sel .s{display:inline}
+.btn.modo.sel{background:#8d93a8;border-color:#8d93a8;color:#0e0f13}
+.stem{border-left:4px solid var(--c);color:var(--mut)}.stem.ativo{background:var(--c);border-color:var(--c);color:var(--t,#0e0f13)}
+.bank{display:none}.bank .row{flex:1}.bank .btn{padding:16px 4px}.bank .btn.lbl{flex:1.4;color:var(--mut)}
+.pads{flex:1;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(3,1fr);gap:8px;min-height:0}
+.pad{min-height:0;min-width:0;overflow:hidden;line-height:1.05;background:color-mix(in srgb,var(--c) 38%,#14151b);border-radius:14px;border:2px solid rgba(255,255,255,.14);
+  font-weight:800;font-size:clamp(11px,3.2vh,22px);padding:clamp(4px,1.2vh,10px);color:#fff;display:flex;align-items:flex-end}
+.pad.aceso,.pad.on,.pad.sel{color:#0e0f13}   /* apagado/repouso: letra branca; aceso: letra preta */
+.pad.on{background:var(--c);filter:brightness(1.3);box-shadow:0 0 26px var(--c)}
+.pad.apagado{opacity:.2}
+.pad.aceso{background:var(--c)}
+.pad small{display:block;font-size:12px;font-weight:700;opacity:.85;font-variant-numeric:tabular-nums;margin-top:2px}
+.pad:has(small){flex-direction:column;align-items:flex-start;justify-content:flex-end}
+.pad{position:relative}
+.pad[data-v]:not([data-v=""])::after{content:attr(data-v);position:absolute;right:6px;top:4px;font-size:12px;background:#000a;padding:1px 5px;border-radius:6px}
+.deck.shift .pad{border-color:#e63946;box-shadow:inset 0 0 0 2px #e63946}
+.shiftbtn{border:1px solid var(--line);background:#222530;color:var(--txt);border-radius:12px;padding:16px 4px;
+  font-size:14px;font-weight:700;text-align:center}
+.deck.shift .shiftbtn{background:#8a1c2b;border-color:#e63946}
+.shiftbtn.dim{opacity:.35}
+.btn.tog{border-style:dashed;opacity:.85;flex:.8}
+#rod{position:absolute;left:0;right:0;bottom:2px;text-align:center;font-size:11px;color:var(--mut);font-family:monospace;pointer-events:none}
+#rod i{display:inline-block;width:8px;height:8px;border-radius:50%;background:#e63946;margin-right:6px}
+#rod.ok i{background:#06d6a0}
+#ult{display:none}:host(.dbg) #ult{display:inline}
+#gire{display:none;position:absolute;inset:0;background:var(--bg);align-items:center;justify-content:center;font-size:18px;color:var(--mut)}
+@media (orientation:portrait){#app{display:none}#gire{display:flex}}
+@media (max-height:760px){.btn{padding:9px 4px;font-size:12px}.stems .btn{padding:11px 4px}.shiftbtn{padding:10px 4px;font-size:12px}.deck{gap:5px;padding:7px}.trilho{height:34px}.bank .btn{padding:10px 4px}}
+@media (max-height:640px){.btn{padding:6px 4px}.stems .btn{padding:7px 4px}.shiftbtn{padding:6px 4px}.trilho{height:28px}}
+.topo .acoes{display:flex;gap:6px}
+.topo .lado{display:flex;align-items:center;gap:12px}
+.mini{min-height:44px;display:flex;align-items:center;justify-content:center}
+.master{font-weight:700;letter-spacing:.12em}
+.master.sel{color:#06d6a0}   /* so um rotulo: apenas muda a cor do texto quando o deck e o master */
+.mini{border:1px solid var(--line);background:#222530;color:var(--txt);border-radius:8px;padding:5px 14px;font-size:12px;font-weight:700;letter-spacing:.06em}
+#app.z0,#app.z1{grid-template-columns:1fr}
+#app.z0 #d1,#app.z1 #d0{display:none}
+#app.z0 .stems .btn,#app.z1 .stems .btn{min-height:max(64px,10vh);font-size:16px;display:flex;align-items:center;justify-content:center}
+#app.z0 .shiftbtn,#app.z1 .shiftbtn{min-height:max(64px,10vh);font-size:16px;display:flex;align-items:center;justify-content:center}
+#app.z0 .modos .btn,#app.z1 .modos .btn{padding-top:14px;padding-bottom:14px;font-size:14px}
+.ctl .shiftbtn{flex:1.3;display:flex;align-items:center;justify-content:center;text-align:center;padding:15px 4px;font-size:14px}
+.ctl .btn{padding:15px 4px;font-size:14px}
+@media (max-height:760px){.ctl .btn,.ctl .shiftbtn,.loop .btn{padding:9px 2px}.sfxn{padding:11px 2px}.sfxs,.sfxh{padding:8px 2px}}
+@media (max-height:640px){.ctl .btn,.ctl .shiftbtn,.loop .btn{padding:6px 2px}.sfxn{padding:7px 2px}.sfxs,.sfxh{padding:6px 2px}}
+#app.z0 .ctl .btn,#app.z1 .ctl .btn,#app.z0 .loop .btn,#app.z1 .loop .btn,#app.z0 .ctl .shiftbtn,#app.z1 .ctl .shiftbtn{min-height:max(56px,9vh);font-size:16px;display:flex;align-items:center;justify-content:center}
+
+.modos .btn{border-top:3px solid var(--c,#6b7fd6)}
+.modos .btn.sel{background:var(--c);border-color:var(--c);color:var(--t,#0e0f13)}
+.loop .btn,.ctl .btn{padding:13px 2px;font-size:13px}
+.sfx{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:8px 6px;display:flex;flex-direction:column;gap:6px;min-height:0;overflow:hidden}
+.sfxt{font-size:10px;letter-spacing:.1em;color:var(--mut);font-weight:700;text-align:center}
+.sfxb{display:flex;flex-direction:column;gap:6px}
+.sfxn{padding:16px 2px;font-size:15px;background:#1f3a5c;border-color:#2f5d94}
+.sfx.sel .sfxn{background:#5c3a1f;border-color:#94602f}
+.sfxf{flex:1;min-height:60px;position:relative;background:#12141a;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.sfxe{position:absolute;left:0;right:0;bottom:0;height:0;background:#4361ee}
+.sfx .btn{flex:none}
+.sfxs,.sfxh{padding:12px 2px;font-size:12px}
+.stems,.modos,.ctl{--h:max(54px,8.2vh)}
+.stems .btn,.modos .btn,.ctl .btn,.ctl .shiftbtn{min-height:var(--h);display:flex;align-items:center;justify-content:center;padding-top:0;padding-bottom:0}
+.stems,.modos,.ctl{flex:none}
+</style><div id="app"><div class="deck" id="d0"></div><div class="deck" id="d1"></div></div>
+<div id="gire">Gire o tablet para a horizontal</div>
+<div id="rod"><i></i><span id="st">sem conexao</span> &nbsp; <span id="ult"></span></div>`;
+
+// Deck 1 = canal 7, deck 2 = canal 9 (pads). SHIFT = mesmo pad no canal +1 (so no HOT CUE: apagar). SHIFT nunca envia MIDI.
+// Botoes de modo: nota no canal do deck (0 e 1). Aperto = note on vel 127; solta = note on vel 0.
+const MODOS=[{"id": "hotcue", "nome": "HOT CUE", "nota_modo": 27, "pads": [{"rot": "A", "nota": 0}, {"rot": "B", "nota": 1}, {"rot": "C", "nota": 2}, {"rot": "D", "nota": 3}, {"rot": "E", "nota": 4}, {"rot": "F", "nota": 5}, {"rot": "G", "nota": 6}, {"rot": "H", "nota": 7}, {"rot": "I", "nota": 8}, {"rot": "J", "nota": 9}, {"rot": "K", "nota": 10}, {"rot": "L", "nota": 11}], "shift": true, "colunas": 4, "linhas": 3}, {"id": "beatloop", "nome": "BEAT LOOP", "nota_modo": 109, "pads": [{"rot": "1/4", "nota": 96}, {"rot": "1/2", "nota": 97}, {"rot": "1", "nota": 98}, {"rot": "2", "nota": 99}, {"rot": "4", "nota": 100}, {"rot": "8", "nota": 101}, {"rot": "16", "nota": 102}, {"rot": "32", "nota": 103}], "shift": false, "colunas": 4, "linhas": 2}, {"id": "sampler", "nome": "SAMPLER", "nota_modo": 34, "pads": [{"rot": "SLOT 1", "nota": 48}, {"rot": "SLOT 2", "nota": 49}, {"rot": "SLOT 3", "nota": 50}, {"rot": "SLOT 4", "nota": 51}, {"rot": "SLOT 5", "nota": 52}, {"rot": "SLOT 6", "nota": 53}, {"rot": "SLOT 7", "nota": 54}, {"rot": "SLOT 8", "nota": 55}], "shift": true, "colunas": 4, "linhas": 2, "shift_txt": "SHIFT (parar slot)", "barra": {"menos": "BANCO -", "mais": "BANCO +", "rot": "BANCO", "contador": 4, "canal": "deck", "nota_menos": 39, "nota_mais": 47}}, {"id": "keyboard", "nome": "KEYBOARD", "nota_modo": 105, "pads": [{"rot": "+4", "nota": 64}, {"rot": "+5", "nota": 65}, {"rot": "+6", "nota": 66}, {"rot": "+7", "nota": 67}, {"rot": "0", "nota": 68}, {"rot": "+1", "nota": 69}, {"rot": "+2", "nota": 70}, {"rot": "+3", "nota": 71}], "shift": false, "colunas": 4, "linhas": 2}];
+const PERF=[{"rot": "NUDGE -", "nota": 80, "estado": false, "topo": false, "aria": null}, {"rot": "NUDGE +", "nota": 81, "estado": false, "topo": false, "aria": null}, {"rot": "SLIP", "nota": 82, "estado": true, "topo": false, "aria": null}, {"rot": "MASTER", "nota": 83, "estado": true, "topo": true, "aria": null}, {"rot": "DOUBLES", "nota": 84, "estado": false, "topo": true, "aria": "Instant Doubles"}, {"rot": "CFX ON", "nota": 85, "estado": true, "topo": false, "aria": "Color FX ligado/desligado", "global": true}];     // 2a pagina da fila de baixo: NUDGE -/+, SLIP, MASTER (os dois ultimos mostram o estado do Rekordbox)
+const ctrlFb=[{},{}];
+const ctrlGlobalFb={};   // nota -> botoes dos 2 decks: funcoes globais (CFX ON) devolvem o estado uma vez so, no canal 12    // por deck: nota -> botao que segue o estado do Rekordbox
+const CTRL=[{"rot": "KEY -", "nota": 10}, {"rot": "KEY +", "nota": 121}, {"rot": "KEY SYNC", "nota": 101}, {"rot": "KEY RESET", "nota": 100}];     // QUANTIZE (alterna) e KEY -/+ (momentaneos), canal do deck
+const STEMS={"modo": {"rot": "MODO", "nota": 86}, "partes": [{"rot": "VOCAL", "nota": 16}, {"rot": "INST", "nota": 17}, {"rot": "BASS", "nota": 18}, {"rot": "DRUMS", "nota": 19}], "fb": {"stems": [12, 13]}};   // stems: um codigo por parte (o Rekordbox alterna);
+const CORES_STEM=['#ef476f','#ffd166','#4361ee','#06d6a0'];
+let FB=false;            // estado dos STEMS vem do Rekordbox
+let _fbx=false;            // vira true na 1a mensagem de estado vinda do Rekordbox: dai em diante a tela segue o Rekordbox
+const stemBtns=[[],[]];  // por deck: botoes VOCAL/INST/BASS/DRUMS
+const padHooks=[null,null];
+const cueTempos=[null,null],renders=[null,null];   // por deck: indice do hot cue -> 'm:ss' (informado por window.__padsCues)
+window.__padsCues=(d,tempos)=>{cueTempos[d]=tempos;if(renders[d])renders[d]()};   // por deck: recebe (nota,vel) dos pads vindos do Rekordbox
+const DBG=/[?&]dbg=1/.test(location.search);   // ?dbg=1 mostra a velocidade recebida em cada pad e a ultima mensagem MIDI
+if(DBG)R.host.classList.add('dbg');
+// cor do texto: escuro ou branco, o que der mais contraste (minimo entre todos os fundos em que o botao aparece)
+const _lum=h=>{const c=[1,3,5].map(i=>parseInt(h.substr(i,2),16)/255).map(v=>v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4));return .2126*c[0]+.7152*c[1]+.0722*c[2]};
+const _mix=(h,base,a)=>'#'+[1,3,5].map(i=>Math.round(a*parseInt(h.substr(i,2),16)+(1-a)*parseInt(base.substr(i,2),16)).toString(16).padStart(2,'0')).join('');
+const _cr=(a,b)=>(Math.max(a,b)+.05)/(Math.min(a,b)+.05);
+function textoPara(fundos){let best='#ffffff',bm=0;for(const t of ['#0e0f13','#ffffff']){const m=Math.min(...fundos.map(f=>_cr(_lum(f),_lum(t))));if(m>bm){bm=m;best=t}}return best}
+// a tela nao deixa o tablet apagar durante o set
+let _wl=null;
+async function pedeWL(){try{if(navigator.wakeLock&&document.visibilityState==='visible'&&!_wl){_wl=await navigator.wakeLock.request('screen');_wl.addEventListener('release',()=>{_wl=null})}}catch(e){_wl=null}}
+document.addEventListener('pointerdown',pedeWL);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')pedeWL()});pedeWL();
+function feedback(ch,nota,vel){
+  const F=STEMS.fb,on=vel>0;
+  if(ch===F.stems[0]&&ctrlGlobalFb[nota]){ctrlGlobalFb[nota].forEach(b=>b.classList.toggle('sel',on));return}
+  ult.textContent='RB: 9'+ch.toString(16).toUpperCase()+' '+nota.toString(16).toUpperCase().padStart(2,'0')+' '+vel.toString(16).toUpperCase().padStart(2,'0');
+  const d=F.stems.indexOf(ch);
+  if(d>=0){const k=STEMS.partes.findIndex(p=>p.nota===nota);
+    if(k>=0){if(stemBtns[d][k]){FB=true;stemBtns[d][k]._on=on;stemBtns[d][k].classList.toggle('ativo',on)}return}
+    if(ctrlFb[d][nota]){ctrlFb[d][nota].classList.toggle('sel',on);return}
+    if(padHooks[d])padHooks[d](nota,vel);return}
+}          // so a tela; compartilhado entre os 2 decks (a funcao do Rekordbox e global)
+const PCH=[7,9];
+const COR_MODO={hotcue:'#ef476f',beatloop:'#ff9f1c',sampler:'#f15bb5',keyboard:'#06d6a0'};
+const CORES={hotcue:['#ef476f','#f78c6b','#ffd166','#06d6a0','#26c6da','#4361ee','#9b5de5','#f15bb5','#8ac926','#ff9f1c','#2ec4b6','#c77dff','#ff6b6b','#4cc9f0','#b5e48c','#ffb703'],
+             keyshift:['#ffd166','#ffd166','#ffd166','#ffd166','#ffb347','#e9c46a','#e9c46a','#e9c46a'],
+             keyboard:['#06d6a0','#06d6a0','#06d6a0','#06d6a0','#26c6da','#8ac926','#8ac926','#8ac926'],
+             sampler:['#f15bb5','#f15bb5','#f15bb5','#f15bb5','#c77dff','#c77dff','#c77dff','#c77dff'],
+             beatloop:['#ffd166','#ffb347','#ff9f1c','#f78c6b','#ef7b45','#e85d04','#dc2f02','#d00000']};
+
+const stEl=R.getElementById('st'),rod=R.getElementById('rod'),ult=R.getElementById('ult');
+window.__padsFeedback=feedback;      // o v2 repassa aqui o estado vindo do Rekordbox
+setInterval(()=>{const on=window.__midiOk&&window.__midiOk();rod.className=on?'ok':'';stEl.textContent=on?'conectado':'sem conexao'},500);
+function enviar(t,ch,nota,vel){                    // t: 'on' | 'rel' | 'cc' (nota = numero do CC, vel = valor)
+  if(window.__midiEnviar)window.__midiEnviar(t,ch,nota,vel);
+  ult.textContent='ultimo: '+[(t==='cc'?0xB0:0x90)|ch,nota,vel].map(x=>x.toString(16).padStart(2,'0')).join(' ').toUpperCase();
+}
+// segura: aperto manda 'on', solta manda 'rel' (com a nota/canal decididos no aperto)
+function segurar(el,decidir,extra){
+  let seg=false,ch=0,nota=0;
+  el.addEventListener('pointerdown',ev=>{
+    ev.preventDefault();
+    try{el.setPointerCapture(ev.pointerId)}catch(_){}
+    if(seg)return;
+    const x=decidir(); if(!x)return;
+    seg=true; ch=x[0]; nota=x[1]; el.classList.add('on');
+    enviar('on',ch,nota,127);
+    if(navigator.vibrate)navigator.vibrate(8);
+    if(extra)extra();
+  });
+  const soltar=()=>{if(!seg)return; seg=false; el.classList.remove('on'); enviar('rel',ch,nota,0)};
+  ['pointerup','pointercancel','lostpointercapture'].forEach(n=>el.addEventListener(n,soltar));
+}
+
+function montar(el,d){
+  el.innerHTML='<div class="topo"><span class="lado"><span>DECK '+(d+1)+'</span><span class="master" role="status" aria-label="Deck master">MASTER</span></span><span class="acoes"><span class="mini dbl" aria-label="Instant Doubles">DOUBLES</span><span class="mini zoom">AMPLIAR</span><span class="mini full">TELA CHEIA</span></span></div><div class="row stems"></div><div class="row modos"></div><div class="pads"></div><div class="row bank"></div><div class="ganho"><span>GANHO DRUM SWAP</span><div class="trilho"><div class="enche"></div></div></div><div class="row ctl"><div class="shiftbtn">SHIFT</div></div>';
+  const modosEl=el.querySelector('.modos'),pads=el.querySelector('.pads'),sh=el.querySelector('.shiftbtn'),bankEl=el.querySelector('.bank'),ganhoEl=el.querySelector('.ganho');
+  let modo=0,shift=false;
+  const padEls=[];
+  for(let i=0;i<Math.max(...MODOS.map(m=>m.pads.length));i++){const e=document.createElement('div');e.className='pad';pads.appendChild(e);padEls.push(e)}
+  const render=()=>{
+    const m=MODOS[modo];
+    pads.style.gridTemplateRows='repeat('+m.linhas+',1fr)';
+    padEls.forEach((e,i)=>{
+      const p=m.pads[i];
+      e.style.display=p?'flex':'none';
+      if(p){const cor=p.cor||CORES[m.id][i%CORES[m.id].length];e.textContent=p.rot;
+        const tc=m.id==='hotcue'&&cueTempos[d]&&cueTempos[d][i];if(tc){const sm=document.createElement('small');sm.textContent=tc;e.appendChild(sm)}   // tempo do hot cue (so quando a pagina que embute o v1 informa)
+        e.style.setProperty('--c',cor);e.style.setProperty('--t',textoPara([cor,_mix(cor,'#14151b',.62)]));e.setAttribute('aria-label','Deck '+(d+1)+' '+m.nome+' '+p.rot)}
+    });
+    sh.textContent=m.shift?(m.shift_txt||'SHIFT (apagar)'):'SHIFT (sem funcao neste modo)';
+    bankEl.style.display=m.barra?'flex':'none';
+    ganhoEl.style.display=m.ganho!=null?'flex':'none';
+    barras.forEach((x,j)=>{if(x)x.style.display=(j===modo)?'flex':'none'});
+    sh.classList.toggle('dim',!m.shift);
+    if(!m.shift)setShift(false);
+    [...modosEl.children].forEach((b,j)=>b.classList.toggle('sel',j===modo));
+    aplicaLuz();
+  };
+  // estado dos pads vindo do Rekordbox: so apaga o que sobra depois que o Rekordbox informou algo deste modo
+  const luz={};
+  const aplicaLuz=()=>{
+    const m=MODOS[modo],informado=m.pads.some(p=>p.nota in luz);
+    padEls.forEach((e,i)=>{const p=m.pads[i];if(!p)return;const v=luz[p.nota];
+      e.classList.toggle('aceso',informado&&v>0);e.classList.toggle('apagado',informado&&!(v>0));
+      if(DBG&&v!=null)e.dataset.v=v;else delete e.dataset.v});
+  };
+  padHooks[d]=(nota,vel)=>{luz[nota]=vel;aplicaLuz()};
+  const setShift=v=>{shift=v;el.classList.toggle('shift',v)};
+  MODOS.forEach((m,j)=>{
+    const b=document.createElement('div');b.className='btn';b.textContent=m.nome;b.style.setProperty('--c',COR_MODO[m.id]||'#6b7fd6');b.style.setProperty('--t',textoPara([COR_MODO[m.id]||'#6b7fd6']));modosEl.appendChild(b);
+    if(m.nota_modo==null){b.addEventListener('pointerdown',ev=>{ev.preventDefault();modo=j;render()})}   // so a tela (ex.: GROOVE)
+    else segurar(b,()=>[d,m.nota_modo],()=>{modo=j;render()});
+  });
+  // barras extras por modo: banco do sampler (so a tela conta: assume banco 1 ao abrir; tocar no rotulo volta a tela para 1)
+  // e seletor de hot cue do keyboard (sem contador: o Rekordbox nao informa qual hot cue esta selecionado)
+  const barras=[];
+  MODOS.forEach((m,j)=>{
+    if(!m.barra)return;
+    const br=m.barra,bar=document.createElement('div');bar.className='row barra';bar.style.display='none';bankEl.appendChild(bar);
+    const lbl=document.createElement('div');lbl.className='btn lbl';
+    let n=1;const att=()=>{lbl.textContent=br.contador?br.rot+' '+n+' / '+br.contador:br.rot};
+    const canal=()=>br.canal==='shift'?PCH[d]+1:d;
+    const mk=(txt,nota,delta)=>{const b=document.createElement('div');b.className='btn';b.textContent=txt;
+      segurar(b,()=>[canal(),nota],()=>{if(br.contador){n=Math.min(br.contador,Math.max(1,n+delta));att()}});return b};
+    bar.append(mk(br.menos,br.nota_menos,-1),lbl,mk(br.mais,br.nota_mais,1));
+    if(br.contador)lbl.addEventListener('pointerdown',ev=>{ev.preventDefault();n=1;att()});
+    att();barras[j]=bar;
+  });
+  padEls.forEach((e,i)=>segurar(e,()=>{
+    const p=MODOS[modo].pads[i]; if(!p)return null;
+    return [MODOS[modo].canal_deck?d:PCH[d]+((shift&&MODOS[modo].shift)?1:0),p.nota];
+  },()=>{
+    const p=MODOS[modo].pads[i]; if(!p||!p.grupo)return;       // BANK A/B e SINGLE/MULTI: so a tela marca o ultimo tocado
+    MODOS[modo].pads.forEach((q,k)=>{if(q.grupo===p.grupo)padEls[k].classList.toggle('sel',k===i)});
+  }));
+  sh.addEventListener('pointerdown',ev=>{ev.preventDefault();try{sh.setPointerCapture(ev.pointerId)}catch(_){};if(MODOS[modo].shift)setShift(true)});
+  ['pointerup','pointercancel','lostpointercapture'].forEach(n=>sh.addEventListener(n,()=>setShift(false)));
+  // ganho do Drum Swap: fader horizontal de 14 bits (MSB = CC, LSB = CC+32), canal do deck
+  const trilho=ganhoEl.querySelector('.trilho'),enche=ganhoEl.querySelector('.enche');let ultimoG=-1;
+  const setG=ev=>{
+    const m=MODOS.find(x=>x.ganho!=null),r=trilho.getBoundingClientRect();
+    let v=(ev.clientX-r.left)/r.width;v=Math.max(0,Math.min(1,v));
+    const n=Math.round(v*16383);enche.style.width=(v*100)+'%';
+    if(n!==ultimoG){ultimoG=n;enviar('cc',d,m.ganho,n>>7);enviar('cc',d,m.ganho+32,n&127)}
+  };
+  trilho.addEventListener('pointerdown',ev=>{ev.preventDefault();try{trilho.setPointerCapture(ev.pointerId)}catch(_){}setG(ev)});
+  trilho.addEventListener('pointermove',ev=>{let c=false;try{c=trilho.hasPointerCapture(ev.pointerId)}catch(_){}if(c)setG(ev)});
+  const ctlEl=el.querySelector('.ctl');
+  const paginas=[[],[]];   // 0 = KEY, 1 = PERFORMANCE
+  const mostra=pg=>{paginas.forEach((l,i)=>l.forEach(b=>b.style.display=(i===pg)?'':'none'));tog.textContent=pg?'KEY':'PERF';tog.dataset.pg=pg};
+  const novoBtn=(c,pg)=>{
+    const b=document.createElement('div');b.className='btn';b.textContent=c.rot;ctlEl.appendChild(b);paginas[pg].push(b);
+    segurar(b,()=>[c.global?0:d,c.nota],c.alterna?()=>b.classList.toggle('sel'):null);   // global: sempre canal 0
+    if(c.aria)b.setAttribute('aria-label',c.aria);
+    if(c.global){(ctrlGlobalFb[c.nota]=ctrlGlobalFb[c.nota]||[]).push(b)}
+    else if(c.estado)ctrlFb[d][c.nota]=b;
+  };
+  const tog=document.createElement('div');tog.className='btn tog';
+  CTRL.forEach(c=>novoBtn(c,0));
+  PERF.filter(c=>!c.topo).forEach(c=>novoBtn(c,1));
+  const dbl=PERF.find(c=>c.nota===0x54);segurar(el.querySelector('.dbl'),()=>[d,dbl.nota]);
+  const mst=PERF.find(c=>c.nota===0x53), mstEl=el.querySelector('.master');   // MASTER no cabecalho: sempre visivel, acende quando o deck e master no Rekordbox
+  ctrlFb[d][mst.nota]=mstEl;
+  ctlEl.appendChild(tog);
+  tog.addEventListener('pointerdown',ev=>{ev.preventDefault();mostra(tog.dataset.pg==='1'?0:1)});
+  mostra(0);
+  // painel de STEMS (fica sempre visivel): toque alterna ligado/desligado so na tela; o estado real e o do Rekordbox
+  const stemsEl=el.querySelector('.stems');
+  STEMS.partes.forEach((p,k)=>{
+    const b=document.createElement('div');b.className='btn stem';b.textContent=p.rot;b.style.setProperty('--c',CORES_STEM[k]);b.style.setProperty('--t',textoPara([CORES_STEM[k]]));stemsEl.appendChild(b);
+    b._on=true;b.classList.add('ativo');
+    stemBtns[d][k]=b;
+    segurar(b,()=>[PCH[d],p.nota],()=>{if(FB)return;b._on=!b._on;b.classList.toggle('ativo',b._on)});
+  });
+  // MODO dos stems (mute/solo): funcao global do Rekordbox (canal 0); os dois decks mostram sempre o mesmo estado
+  if(STEMS.modo){
+    const m=STEMS.modo,b=document.createElement('div');b.className='btn modo';b.innerHTML='MODO<span class="m">MUTE</span><span class="s">SOLO</span>';b.setAttribute('aria-label','Modo dos stems: mute ou solo');
+    stemsEl.appendChild(b);(ctrlGlobalFb[m.nota]=ctrlGlobalFb[m.nota]||[]).push(b);
+    segurar(b,()=>[0,m.nota],()=>{const on=!b.classList.contains('sel');ctrlGlobalFb[m.nota].forEach(x=>x.classList.toggle('sel',on))});
+  }
+  renders[d]=render;render();
+}
+montar(R.getElementById('d0'),0);
+montar(R.getElementById('d1'),1);
+
+// acessibilidade: os controles sao div; role=button da o nome pelo texto e aria-pressed acompanha o estado visual
+const _ariaEl=e=>{e.setAttribute('role','button');const t=e.matches('.stem,.btn.tog,.modos .btn,.ctl .btn,.pad');if(t)e.setAttribute('aria-pressed',e.classList.contains('ativo')||e.classList.contains('sel')||e.classList.contains('aceso'))};
+const _ariaTodos=()=>R.querySelectorAll('.btn,.pad,.shiftbtn,.mini').forEach(_ariaEl);
+_ariaTodos();
+new MutationObserver(ms=>ms.forEach(m=>{if(m.target.matches('.btn,.pad,.shiftbtn,.mini'))_ariaEl(m.target)})).observe(R,{subtree:true,attributes:true,attributeFilter:['class']});
+
+(function(){
+  const app=R.getElementById('app');
+  const fsOk=!!(document.documentElement.requestFullscreen||document.documentElement.webkitRequestFullscreen);
+  function atualiza(){
+    const z=app.className.match(/z(\d)/),f=!!(document.fullscreenElement||document.webkitFullscreenElement);
+    R.querySelectorAll('.zoom').forEach((e,i)=>{e.textContent=(z&&+z[1]===i)?'VOLTAR':'AMPLIAR'});
+    R.querySelectorAll('.full').forEach(e=>{e.textContent=f?'SAIR TELA CHEIA':'TELA CHEIA';e.style.display=fsOk?'':'none'});
+  }
+  R.querySelectorAll('.zoom').forEach((e,i)=>e.addEventListener('pointerdown',ev=>{
+    ev.preventDefault();app.className=(app.className==='z'+i)?'':'z'+i;atualiza()}));
+  R.querySelectorAll('.full').forEach(e=>e.addEventListener('pointerdown',ev=>{
+    ev.preventDefault();
+    try{
+      if(document.fullscreenElement||document.webkitFullscreenElement)(document.exitFullscreen||document.webkitExitFullscreen).call(document);
+      else (document.documentElement.requestFullscreen||document.documentElement.webkitRequestFullscreen).call(document.documentElement);
+    }catch(x){}
+  }));
+  document.addEventListener('fullscreenchange',atualiza);document.addEventListener('webkitfullscreenchange',atualiza);
+  atualiza();
+})();
+
+})();
+/*PADS_FIM*/
+// tela cheia: entra e sai; o botao some se o navegador nao suporta
+(function(){
+  const tc=document.getElementById('tc'),de=document.documentElement;
+  const entra=de.requestFullscreen||de.webkitRequestFullscreen,sai=document.exitFullscreen||document.webkitExitFullscreen;
+  if(!entra){tc.style.display='none';return}
+  const cheia=()=>!!(document.fullscreenElement||document.webkitFullscreenElement);
+  const atualiza=()=>{tc.textContent=cheia()?'SAIR DA TELA CHEIA':'TELA CHEIA';tc.setAttribute('aria-label',tc.textContent)};
+  tc.addEventListener('pointerdown',ev=>{ev.preventDefault();try{const r=cheia()?sai.call(document):entra.call(de);if(r&&r.catch)r.catch(()=>{})}catch(x){}});
+  document.addEventListener('fullscreenchange',atualiza);document.addEventListener('webkitfullscreenchange',atualiza);atualiza();
+})();
+montaDeck(0);montaDeck(1);
+conectar();conectaMidi();requestAnimationFrame(laco);
+</script>
+</body>
+</html>
