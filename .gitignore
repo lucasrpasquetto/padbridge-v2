@@ -12,3 +12,8 @@ tests/fixtures/anlz/
 # arquivos de terceiros (Pioneer DJ / AlphaTheta) nunca entram no repositorio
 *.midi.csv
 comandos.txt
+
+# gerados pelo PyInstaller
+dist/
+build/
+*.spec

@@ -1,0 +1,19 @@
+PadBridge - pacote completo
+===========================
+
+No notebook, uma vez:
+ 1. Instale o Rekordbox (mesma versao) e abra-o ao menos uma vez.
+ 2. Instale o loopMIDI e crie a porta "PadBridge".
+ 3. No Rekordbox, importe PadBridge.midi.csv (Preferencias > Controladora > MIDI).
+ 4. Conecte o pendrive/HD da biblioteca na mesma letra de unidade (waveforms e cues dependem disso).
+ 5. De duplo clique em Testar-banco.bat: deve mostrar "OK: banco do Rekordbox aberto".
+
+Para usar:
+ - Abra o Rekordbox, depois de duplo clique em PadBridge.exe.
+   Ele aparece na bandeja (ao lado do relogio); decks, pads e MIDI rodam todos nele.
+ - No tablet: http://IP-DO-NOTEBOOK:8766  (IP do notebook).
+   Pads (v1): http://IP-DO-NOTEBOOK:8765 (porta do v1 continua valendo).
+   Por USB: adb reverse tcp:8766 tcp:8766 e abra http://localhost:8766
+ - Se o Windows perguntar sobre o firewall, permita em redes privadas.
+
+Opcoes (atalho com argumentos): --sem-onda (so dados dos decks), --porta N, --console (terminal).

@@ -30,7 +30,7 @@ class Biblioteca:
 
     def _inicia(self):
         self._p = subprocess.Popen(self.comando, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-                                   text=True, encoding="utf-8", bufsize=1)
+                                   creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0), text=True, encoding="utf-8", bufsize=1)
         threading.Thread(target=self._le, args=(self._p,), daemon=True).start()
         self._q.get(timeout=self.timeout)       # {"pronto": true}
 
