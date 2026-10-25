@@ -138,6 +138,49 @@ with sync_playwright() as p:
     ok(o1[0] >= d1[0] and o1[2] <= d1[2] and (o1[2] - o1[0]) > 3 * (o1[3] - o1[1]), f"waveform horizontal dentro do painel do deck: {o1}")
     ys = [pg.evaluate("s=>document.querySelector(s).getBoundingClientRect().top", f"#d1 {c}") for c in (".info", ".cuesbarra", ".ondawrap", ".barra", ".stems", ".pads")]
     ok(ys == sorted(ys) and len(set(ys)) == 6, f"ordem vertical: dados, marcas, waveform, barra, stems, pads: {ys}")
+    # --- SEEK: arrastar na waveform manda NeedleSearch (14 bits) + toque; travado por padrao ---------------------------
+    env(dict(tipo="onda", n=1, ok=True, **REAL)); env(dict(decks=[D1, dict(D1, n=2, decorrido="00:10.0", restante="-03:20.0")], ms=1, erro=None)); pg.wait_for_timeout(60)
+    env(dict(tipo="onda", n=2, ok=True, **REAL)); pg.wait_for_timeout(40)
+    def ev(sel, tipo, fx, pid=3):
+        pg.evaluate("([s,t,f,p])=>{const e=document.querySelector(s),r=e.getBoundingClientRect();e.dispatchEvent(new PointerEvent(t,{bubbles:true,pointerId:p,clientX:r.left+f*r.width,clientY:r.top+r.height/2}))}", [sel, tipo, fx, pid])
+    def arrasta(sel, fxs):
+        pg.evaluate("window.__enviado.length=0")
+        ev(sel, "pointerdown", fxs[0])
+        for fx in fxs[1:]:
+            pg.wait_for_timeout(30); ev(sel, "pointermove", fx)
+        pg.wait_for_timeout(30); ev(sel, "pointerup", fxs[-1])
+        return pg.evaluate("window.__enviado.slice()")
+    ok(pg.evaluate("window.__seek()") is False and t("#sk") == "SEEK: TRAVADO", f"seek comeca travado: {t('#sk')!r}")
+    ok(arrasta("#o1", [0.5, 0.6]) == [], "travado: tocar na waveform nao manda nada")
+    tocaid("#sk"); pg.wait_for_timeout(30)
+    ok(pg.evaluate("window.__seek()") is True and t("#sk") == "SEEK: LIBERADO" and L("#o1.seek").count() == 1, "botao libera o seek")
+    m = arrasta("#o1", [0.5])
+    ok(m == ["on,0,67,127", "cc,0,3,64", "cc,0,35,0", "cc,0,3,64", "cc,0,35,0", "rel,0,67,0"], f"toque no meio: toque + posicao 8192 (MSB 64, LSB 0) e solta: {m}")
+    m = arrasta("#o2", [0.25, 1.0])
+    ok(m[0] == "on,1,67,127" and m[-1] == "rel,1,67,0" and "cc,1,3,127" in m and "cc,1,35,127" in m, f"deck 2 usa o canal 1 e o fim da faixa = 16383: {m}")
+    m = arrasta("#o1", [0.0])
+    ok("cc,0,3,0" in m and "cc,0,35,0" in m, f"inicio = 0: {m}")
+    m = arrasta("#o1", [0.3, 0.31, 0.32, 0.33])
+    ok(len([x for x in m if x.startswith("cc,0,3,")]) >= 2 and m[-1] == "rel,0,67,0", f"arrastando manda varias posicoes e solta no fim: {len(m)} mensagens")
+    ult_ = [x for x in m if x.startswith("cc,0,3,") or x.startswith("cc,0,35,")][-2:]
+    esperado_v = round(0.33 * 16383); ok(ult_ == [f"cc,0,3,{esperado_v >> 7}", f"cc,0,35,{esperado_v & 127}"], f"ultima posicao enviada e a do dedo: {ult_} vs {esperado_v}")
+    # durante o arrasto a agulha segue o dedo e aparece o tempo de destino
+    pg.evaluate("window.__enviado.length=0"); ev("#o1", "pointerdown", 0.4); ev("#o1", "pointermove", 0.4); pg.wait_for_timeout(60)
+    g2 = pg.evaluate("()=>{const w=document.querySelector('#o1').getBoundingClientRect(),a=document.querySelector('#o1 .agulha').getBoundingClientRect(),al=document.querySelector('#o1 .alvo');return [((a.left+a.right)/2-w.left)/w.width,getComputedStyle(al).display,al.textContent]}")
+    seg_ = round(0.4 * REAL["duracao"]); alvo_ = f"{seg_ // 60}:{seg_ % 60:02d}"
+    ok(abs(g2[0] - 0.4) < 0.01 and g2[1] == "block" and g2[2] == alvo_, f"agulha segue o dedo e mostra o tempo de destino ({alvo_}): {g2}")
+    ev("#o1", "pointerup", 0.4); pg.wait_for_timeout(60)
+    ok(pg.evaluate("document.querySelector('#o1 .alvo').style.display") == "none" and abs(pg.evaluate("pos_agora(W[1])") - 0.4 * REAL["duracao"]) < 0.3, "ao soltar o rotulo some e o relogio local fica no ponto novo")
+    # sem faixa: nao manda nada; liberado, o arrasto na waveform nao troca de tela
+    pg.evaluate("window.__enviado.length=0"); ev("#o2", "pointerdown", 0.5, 8); ev("#o2", "pointerup", 0.5, 8)
+    desliza("#o1", 900, 600, 300, 310)
+    ok(tela() == "decks", "com o seek liberado, arrastar na waveform nao troca de tela")
+    tocaid("#sk"); pg.wait_for_timeout(30)
+    ok(arrasta("#o1", [0.5, 0.7]) == [] and t("#sk") == "SEEK: TRAVADO", "travar de novo")
+    desliza("#o1", 900, 600, 300, 310)
+    ok(tela() == "pads", "travado, arrastar na waveform troca de tela como antes")
+    desliza("#be", 5, 200)
+    env(dict(decks=[D1, D2], ms=1, erro=None)); env(dict(tipo="onda", n=2, vazia=True)); pg.wait_for_timeout(40)
     # --- 5 botoes de stems (VOCAL INST BASS DRUMS + MODO) e 8 pads de hot cue -----------------------------------
     ok(L("#d1 .stems .btn").count() == 5 and L("#d1 .pads .pad").count() == 8, "5 botoes de stem e 8 pads por deck")
     ok(pg.evaluate("[...document.querySelectorAll('#d1 .stems .btn')].map(e=>e.innerText.replace(/\\s+/g,' '))") == ["VOCAL", "INST", "BASS", "DRUMS", "MODO MUTE"], "rotulos dos stems")
