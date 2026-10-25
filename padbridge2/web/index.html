@@ -240,7 +240,7 @@ function aplicaOnda(m){
 function padsCues(n){
   if(!window.__padsCues)return;const t={};
   (W[n].cues||[]).forEach(c=>{if(c.kind>=1&&c.kind<=12)t[c.kind-1]=mmss(c.ms)});
-  window.__padsCues(n-1,t);
+  window.__padsCues(n-1,W[n].cues_ok&&W[n].carregada?t:null);   // null = ainda nao sei (nao apaga nem acende pelos cues gravados)
 }
 function aplicaCues(m){const w=W[m.n];if(!w)return;w.cues=m.cues||[];w.cues_ok=true;aplicaPads(m.n-1);marcas(m.n);padsCues(m.n)}
 
@@ -567,8 +567,10 @@ function montar(el,d){
   const luz={};
   const aplicaLuz=()=>{
     const m=MODOS[modo],informado=m.pads.some(p=>p.nota in luz);
+    const db=m.id==='hotcue'?cueTempos[d]:null;   // so quando a pagina que embute o v1 informa os hot cues gravados (ex.: o PadBridge v2): acende tambem por eles
     padEls.forEach((e,i)=>{const p=m.pads[i];if(!p)return;const v=luz[p.nota];
-      e.classList.toggle('aceso',informado&&v>0);e.classList.toggle('apagado',informado&&!(v>0));
+      const acesa=(informado&&v>0)||!!(db&&db[i]),sabe=informado||!!db;
+      e.classList.toggle('aceso',acesa);e.classList.toggle('apagado',sabe&&!acesa);
       if(DBG&&v!=null)e.dataset.v=v;else delete e.dataset.v});
   };
   padHooks[d]=(nota,vel)=>{luz[nota]=vel;aplicaLuz()};
