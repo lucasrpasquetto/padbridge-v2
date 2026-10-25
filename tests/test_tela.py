@@ -36,8 +36,10 @@ with sync_playwright() as p:
     ok(L("#o1").is_visible() and not L("#o2").is_visible(), "waveform so no deck carregado")
     ok(t("#d2 .titulo") == "Sem faixa carregada" and L("#d2.vazio").count() == 1, "deck 2 vazio")
     ok("40 ms" in t("#ms") and "dados conectados" in t("#st") and "ponte conectada" in t("#stm"), "rodape")
-    ok(t("#o1 .tatual") == "00:01" and L("#o1 .tatual").is_visible(), f"tempo atual no topo da waveform: {t('#o1 .tatual')!r}")
-    ok(pg.evaluate("(()=>{const a=document.querySelector('#o1 .tatual').getBoundingClientRect(),b=document.querySelector('#o1').getBoundingClientRect();return a.top-b.top<20&&Math.abs((a.left+a.right)/2-(b.left+b.right)/2)<2})()"), "label no topo, centralizado")
+    ok(t("#d1 .atual") == "00:01", f"tempo atual no painel: {t('#d1 .atual')!r}")
+    ok(pg.evaluate("(()=>{const q=s=>document.querySelector(s).getBoundingClientRect();const a=q('#d1 .tempo'),b=q('#d1 .atual'),c=q('#d1 .meta');return a.bottom<=b.top+1&&b.bottom<=c.top+1})()"), "ordem na direita: restante, atual, BPM/TOM")
+    ok(pg.evaluate("parseFloat(getComputedStyle(document.querySelector('#d1 .atual')).fontSize)<parseFloat(getComputedStyle(document.querySelector('#d1 .tempo')).fontSize)"), "tempo atual em fonte menor que o restante")
+    ok(L(".centro").count() == 0 and L(".tatual").count() == 0, "sem waveform vertical no centro")
     # --- tela cheia: o botao entra e sai
     ok(t("#tc") == "TELA CHEIA", f"botao diz entrar: {t('#tc')!r}")
     tocaid = lambda sel: pg.evaluate("s=>{const e=document.querySelector(s);const o={bubbles:true,pointerId:1};e.dispatchEvent(new PointerEvent('pointerdown',o))}", sel)
@@ -129,11 +131,13 @@ with sync_playwright() as p:
     env(dict(decks=[D1, D2], ms=1, erro=None)); pg.wait_for_timeout(30)
     ok(ms_(2) and t("#d2 .titulo") == "Sem faixa carregada", "e com o deck vazio tambem")
     midi("st,13,83,0"); pg.wait_for_timeout(30)
-    # --- layout: [deck 1] [waveform 1 | waveform 2] [deck 2], lado a lado, cada coluna com altura toda --------
+    # --- layout: [deck 1] [deck 2] lado a lado; em cada um: dados, marcas dos cues, waveform, barra, stems, pads -------------
     bx = lambda s: pg.evaluate("s=>{const r=document.querySelector(s).getBoundingClientRect();return [r.left,r.top,r.right,r.bottom]}", s)
-    d1, o1, o2, d2 = bx("#d1"), bx("#o1"), bx("#o2"), bx("#d2")
-    ok(d1[2] <= o1[0] + 1 and o1[2] <= o2[0] + 1 and o2[2] <= d2[0] + 1, f"ordem horizontal deck1 | onda1 | onda2 | deck2: {d1} {o1} {o2} {d2}")
-    ok(o1[3] - o1[1] > 600 and abs((o1[3] - o1[1]) - (d1[3] - d1[1])) < 2, "waveforms ocupam a altura toda (verticais)")
+    d1, d2, o1 = bx("#d1"), bx("#d2"), bx("#o1")
+    ok(d1[2] <= d2[0] + 1 and abs(d1[1] - d2[1]) < 2, f"decks lado a lado: {d1} {d2}")
+    ok(o1[0] >= d1[0] and o1[2] <= d1[2] and (o1[2] - o1[0]) > 3 * (o1[3] - o1[1]), f"waveform horizontal dentro do painel do deck: {o1}")
+    ys = [pg.evaluate("s=>document.querySelector(s).getBoundingClientRect().top", f"#d1 {c}") for c in (".info", ".cuesbarra", ".ondawrap", ".barra", ".stems", ".pads")]
+    ok(ys == sorted(ys) and len(set(ys)) == 6, f"ordem vertical: dados, marcas, waveform, barra, stems, pads: {ys}")
     # --- 5 botoes de stems (VOCAL INST BASS DRUMS + MODO) e 8 pads de hot cue -----------------------------------
     ok(L("#d1 .stems .btn").count() == 5 and L("#d1 .pads .pad").count() == 8, "5 botoes de stem e 8 pads por deck")
     ok(pg.evaluate("[...document.querySelectorAll('#d1 .stems .btn')].map(e=>e.innerText.replace(/\\s+/g,' '))") == ["VOCAL", "INST", "BASS", "DRUMS", "MODO MUTE"], "rotulos dos stems")
@@ -180,27 +184,29 @@ with sync_playwright() as p:
     mk = pg.evaluate("[...document.querySelectorAll('#d1 .mk')].map(e=>[e.querySelector('b')?e.querySelector('b').textContent:'',parseFloat(e.style.left)])")
     esperado = [["A", 0.0], ["B", 14.725 / REAL["duracao"] * 100], ["C", 73.627 / REAL["duracao"] * 100], ["D", 76.0 / REAL["duracao"] * 100], ["", 90.0 / REAL["duracao"] * 100], ["H", 100.0 / REAL["duracao"] * 100]]
     ok(len(mk) == 6 and all(a[0] == b[0] and abs(a[1] - b[1]) < 0.02 for a, b in zip(mk, esperado)), f"marcas na barra de progresso: {mk}")
-    ok(pg.evaluate("getComputedStyle(document.querySelector('#d1 .mk i')).borderTopWidth") == "9px" and pg.evaluate("document.querySelector('#d1 .cuesbarra').getBoundingClientRect().bottom<=document.querySelector('#d1 .barra').getBoundingClientRect().top+9"), "seta aponta para baixo, em cima da barra")
-    parado("01:13.2", "-02:17.1")   # 0,43 s antes do cue C (73,627 s); repetido para o cursor nao extrapolar
-    H = pg.evaluate("document.querySelector('#o1 canvas').clientHeight")
-    cy = pg.evaluate("zoomY(1,73200)") / H
-    ok(abs(cy - 0.3) < 0.005, f"cursor a 30% da altura (de cima): {cy:.3f}")
-    ok(abs(pg.evaluate("zoomY(1,73627)") / H - (0.3 + 0.427 / 2)) < 0.002, "cue C 0,43 s a frente fica ABAIXO do cursor (tempo sobe: o futuro entra por baixo)")
-    ok(pg.evaluate("zoomY(1,72700)") < pg.evaluate("zoomY(1,73200)"), "o passado fica acima do cursor")
-    ok(pg.evaluate("zoomY(1,14725)") < 0, "cue B (58 s atras) fora da janela")
-    # amostra a linha em volta de y: devolve o pixel mais opaco
-    zc = lambda x, y: pg.evaluate("([x,y])=>{const c=document.querySelector('#o1 canvas');const g=c.getContext('2d');let best=[0,0,0,0];for(let dy=-3;dy<=3;dy++){const d=g.getImageData(Math.round(x*c.width),Math.round(y*c.height)+dy,1,1).data;if(d[3]>best[3])best=[d[0],d[1],d[2],d[3]]}return best}", [x, y])
-    yc_ = 0.3 + 0.427 / 2
-    cc = zc(0.99, yc_); ok(cc[3] > 200 and cc[0] > 230 and cc[1] > 190 and cc[2] < 140, f"linha do cue C amarela (cor do pad C): {cc}")
+    ok(pg.evaluate("getComputedStyle(document.querySelector('#d1 .mk i')).borderTopWidth") == "9px" and pg.evaluate("document.querySelector('#d1 .cuesbarra').getBoundingClientRect().bottom<=document.querySelector('#d1 .ondawrap').getBoundingClientRect().top+9"), "seta aponta para baixo, em cima da waveform")
+    DUR = REAL["duracao"]
+    px = lambda fx, fy: pg.evaluate("([x,y])=>{const c=document.querySelector('#o1 canvas');return [...c.getContext('2d').getImageData(Math.min(c.width-1,Math.round(x*c.width)),Math.min(c.height-1,Math.round(y*c.height)),1,1).data]}", [fx, fy])
+    linha = lambda y: pg.evaluate("y=>{const c=document.querySelector('#o1 canvas');const d=c.getContext('2d').getImageData(0,y<0?c.height+y:y,c.width,1).data;let n=0;for(let i=3;i<d.length;i+=4)if(d[i]>100)n++;return [n,c.width]}", y)
+    parado("01:13.2", "-02:17.1")
+    base, cw = linha(-2); topo, _ = linha(0)
+    ok(base > 0.85 * cw and topo < 0.1 * cw, f"so a metade de cima: base cheia ({base}/{cw}), topo vazio ({topo})")
+    cc = px(73.627 / DUR, 0.04); ok(cc[3] > 200 and cc[0] > 230 and cc[1] > 190 and cc[2] < 140, f"linha do cue C amarela (cor do pad C) na posicao proporcional: {cc}")
+    cb = px(14.725 / DUR, 0.04); ok(cb[3] > 200 and abs(cb[0] - 0xf7) < 14 and abs(cb[1] - 0x8c) < 24, f"linha do cue B laranja: {cb}")
+    ok(px(80.0 / DUR - 0.003, 0.5)[3] > 0, "loop do cue D (76 s a 80 s) sombreado")
     ok(pg.evaluate("W[1].cues.length") == 6, "cues guardados")
-    parado("00:14.3", "-03:16.0")
-    cb = zc(0.99, 0.3 + 0.425 / 2); ok(cb[3] > 200 and abs(cb[0] - 0xf7) < 12 and abs(cb[1] - 0x8c) < 20, f"linha do cue B laranja: {cb}")
-    parado("00:00.9", "-03:29.5")   # compasso comeca em 0,808 s
-    barras = pg.evaluate("()=>{const c=document.querySelector('#o1 canvas'),g=c.getContext('2d');const x=Math.round(c.width*0.9);let n=0;const d=g.getImageData(x,0,1,c.height).data;for(let y=0;y<c.height;y++){const i=y*4;if(d[i]>200&&d[i+1]>200&&d[i+2]>200&&d[i+3]>100)n++}return n}")
-    ok(barras >= 2, f"linhas de compasso (brancas) na borda da waveform: {barras}")
+    # agulha branca e veu: no ponto do tempo atual; o veu cobre o que ja passou
+    geo = lambda: pg.evaluate("()=>{const w=document.querySelector('#o1').getBoundingClientRect(),a=document.querySelector('#o1 .agulha'),v=document.querySelector('#o1 .veu');const ar=a.getBoundingClientRect(),vr=v.getBoundingClientRect();return [w.left,w.width,(ar.left+ar.right)/2,vr.left,vr.right,getComputedStyle(a).backgroundColor,getComputedStyle(v).backgroundColor,getComputedStyle(a).display,ar.height,w.height]}")
+    g_ = geo(); esp = g_[0] + g_[1] * 73.2 / DUR
+    ok(abs(g_[2] - esp) < 3, f"agulha no ponto do tempo atual: {g_[2]:.1f} esperado {esp:.1f}")
+    ok(g_[5] == "rgb(255, 255, 255)" and g_[7] == "block" and g_[8] >= g_[9] - 3, "agulha branca na vertical, na altura toda")
+    ok(abs(g_[3] - g_[0]) < 2 and abs(g_[4] - g_[2]) < 3, "veu cobre da esquerda ate a agulha (o que ja passou)")
+    ok(g_[6].startswith("rgba(") and float(g_[6].split(",")[3].strip(" )")) > 0.3, f"veu escurece: {g_[6]}")
     parado("00:00.0", "-03:30.4")
-    ok(zc(0.5, 0.1)[3] == 0, f"antes do inicio da faixa (acima do cursor em t=0) nao desenha: {zc(0.5, 0.1)}")
-    ok(zc(0.5, 0.6)[3] > 150, f"depois do inicio ha onda no centro: {zc(0.5, 0.6)}")
+    g_ = geo(); ok(abs(g_[2] - g_[0]) < 2 and g_[4] - g_[3] < 2, "no inicio da faixa a agulha fica na esquerda e o veu some")
+    parado("03:29.0", "-00:01.4")
+    g_ = geo(); ok(g_[2] > g_[0] + g_[1] * 0.97, "perto do fim a agulha fica na direita")
+    parado("01:13.2", "-02:17.1")
     # pads: aceso (com o tempo do cue) quando ha cue no banco; D = Kind 4 do banco que ja vem normalizado (4 = letra D)
     ok(pg.evaluate("[...document.querySelectorAll('#d1 .pad')].map(e=>e.classList.contains('aceso')?'1':'0').join('')") == "11111001".replace("11111001", "11110001") or True, "pads acesos")
     ac = pg.evaluate("[...document.querySelectorAll('#d1 .pad')].map(e=>e.classList.contains('aceso')?e.querySelector('small').textContent||'?':'-')")
@@ -210,6 +216,8 @@ with sync_playwright() as p:
     env(dict(decks=[dict(D1, decorrido="00:53.0", restante="-02:37.0")], ms=1, erro=None)); pg.wait_for_timeout(5)
     p1 = pg.evaluate("pos_agora(W[1])"); pg.wait_for_timeout(200); p2 = pg.evaluate("pos_agora(W[1])"); pg.wait_for_timeout(700); p3 = pg.evaluate("pos_agora(W[1])")
     p4 = (pg.wait_for_timeout(300), pg.evaluate("pos_agora(W[1])"))[1]
+    ag_ = pg.evaluate("(()=>{const w=document.querySelector('#o1').getBoundingClientRect(),a=document.querySelector('#o1 .agulha').getBoundingClientRect();return ((a.left+a.right)/2-w.left)/w.width})()")
+    ok(abs(ag_ - p3 / DUR) < 0.004, f"agulha acompanha o relogio local: {ag_:.4f} vs {p3 / DUR:.4f}")
     ok(p2 > p1 + 0.1 and p3 <= 53.0 + 0.6 and abs(p4 - p3) < 0.001, f"cursor anda sozinho, congela ~0,45 s depois da ultima leitura: {p1:.2f} {p2:.2f} {p3:.2f} {p4:.2f}")
     # fluidez: leituras so com decimos, chegando irregulares (37-143 ms) -> o cursor desenhado avanca em passos pequenos e regulares, sem saltos
     amostras = pg.evaluate("""async()=>{
@@ -225,14 +233,16 @@ with sync_playwright() as p:
     ok(abs((amostras[-1] - amostras[0]) - (len(amostras) and 1.6)) < 0.25, f"e acompanha o tempo real: {amostras[-1] - amostras[0]:.2f} s em 1,6 s")
     # desempenho: desenhar as 2 waveforms precisa caber folgado num quadro (16 ms) - medido com a onda real
     env(dict(tipo="onda", n=2, ok=True, **REAL)); env(dict(decks=[D1, dict(D1, n=2)], ms=1, erro=None)); pg.wait_for_timeout(100)
-    ms_quadro = pg.evaluate("()=>{const t0=performance.now();for(let i=0;i<30;i++){pinta(1);pinta(2)}return (performance.now()-t0)/30}")
-    ok(ms_quadro < 12, f"desenho das 2 waveforms: {ms_quadro:.1f} ms por quadro (limite 12 ms neste ambiente)")
+    ms_quadro = pg.evaluate("()=>{const t0=performance.now();for(let i=0;i<60;i++){pinta(1);pinta(2)}return (performance.now()-t0)/60}")
+    ok(ms_quadro < 3, f"quadro (agulha + veu das 2 waveforms): {ms_quadro:.2f} ms")
+    ms_faixa = pg.evaluate("()=>{const w=W[1],cv=document.querySelector('#o1 canvas'),dpr=devicePixelRatio||1;const t0=performance.now();for(let i=0;i<10;i++){const {g,cw,ch}=prepara(cv);pintaFaixa(g,w.fonte,cw,ch,dpr,w.onda.duracao,w.cues)}return (performance.now()-t0)/10}")
+    ok(ms_faixa < 60, f"desenho da faixa inteira (so ao trocar de faixa/tamanho): {ms_faixa:.1f} ms")
     # troca de faixa: cues e pads limpam
     env(dict(tipo="cues", n=1, cues=[]))
     ok(L("#d1 .mk").count() == 0, "sem cues, sem marcas na barra")
     ok(pg.evaluate("[...document.querySelectorAll('#d1 .pad')].every(e=>!e.classList.contains('aceso'))") or True, "sem cues")
     env(dict(tipo="onda", n=1, ok=True, **{k: v for k, v in REAL.items() if k != "detalhe"})); pg.wait_for_timeout(60)
-    ok(pg.evaluate("W[1].det") is None and zc(0.5, 0.6)[3] > 150, "sem detalhe usa a visao geral no zoom")
+    ok(pg.evaluate("W[1].det") is None and linha(-2)[0] > 0.85 * linha(-2)[1], "sem detalhe usa a visao geral")
     onda(vazia=True); pg.wait_for_timeout(60)
     ok(t("#o1 .ondamsg") == "" and pg.evaluate("W[1].onda") is None, "deck descarregado limpa a onda")
     env(dict(decks=[dict(D1, titulo="<b>x</b> & y")], ms=1, erro=None)); pg.wait_for_timeout(30)

@@ -20,7 +20,7 @@ html,body{overflow:hidden}
 .borda.dir{right:0}.borda.esq{left:0}
 .borda::after{content:"";position:absolute;top:50%;width:4px;height:64px;margin-top:-32px;border-radius:3px;background:#3a3e52;opacity:.9}
 .borda.dir::after{right:3px}.borda.esq::after{left:3px}
-.app{height:100%;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.7fr) minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto;gap:10px 12px;padding:12px 14px 6px}
+.app{height:100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:minmax(0,1fr) auto;gap:10px 12px;padding:12px 14px 6px}
 .lado{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;min-width:0;min-height:0}
 .lado[data-n="1"]{--c:var(--c1)}.lado[data-n="2"]{--c:var(--c2)}
 .rot{font-size:12px;letter-spacing:.14em;font-weight:700;color:var(--mut)}
@@ -34,7 +34,8 @@ html,body{overflow:hidden}
 .artista{margin-top:4px;font-size:clamp(13px,1.6vw,18px);color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .vazio .titulo{color:var(--mut);font-weight:600}
 .tempo{font-size:clamp(26px,3.6vw,42px);font-weight:800;font-variant-numeric:tabular-nums;line-height:1}
-.meta{margin-top:6px;display:flex;gap:8px;justify-content:flex-end}
+.atual{margin-top:4px;font-size:clamp(18px,2.4vw,28px);font-weight:700;font-variant-numeric:tabular-nums;line-height:1;opacity:.9}
+.meta{margin-top:8px;display:flex;gap:8px;justify-content:flex-end}
 .chip{border:1px solid var(--line);border-radius:8px;padding:3px 10px;font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;text-align:left}
 .chip small{display:block;font-size:9px;letter-spacing:.12em;color:var(--mut);font-weight:600}
 .cuesbarra{position:relative;height:24px;flex:none;margin:0 0 -8px}
@@ -55,14 +56,13 @@ html,body{overflow:hidden}
 .pad.aceso{background:var(--k);color:var(--t,#0e0f13)}
 .pad.apagado{opacity:.45}
 .pad.on{filter:brightness(1.3);transform:scale(.96)}
-.centro{display:grid;grid-template-columns:1fr 1fr;gap:8px;min-width:0;min-height:0}
-.ondawrap{position:relative;min-height:0;border-radius:12px;background:#12141b;overflow:hidden;border-top:3px solid var(--c)}
-.ondawrap[data-n="1"]{--c:var(--c1)}.ondawrap[data-n="2"]{--c:var(--c2)}
+.ondawrap{position:relative;flex:none;height:clamp(84px,17vh,160px);border-radius:10px;background:#12141b;overflow:hidden;border:1px solid var(--line)}
 canvas.onda{position:absolute;inset:0;width:100%;height:100%;display:block}
-.tatual{position:absolute;top:6px;left:50%;transform:translateX(-50%);padding:2px 10px;border-radius:8px;background:rgba(15,16,21,.82);border:1px solid var(--line);font-size:clamp(16px,2vw,22px);font-weight:800;font-variant-numeric:tabular-nums;pointer-events:none;z-index:2}
+.veu{position:absolute;left:0;top:0;bottom:0;width:0;background:rgba(8,9,13,.62);pointer-events:none;display:none}
+.agulha{position:absolute;top:0;bottom:0;left:0;width:2px;margin-left:-1px;background:#fff;box-shadow:0 0 6px rgba(255,255,255,.85);pointer-events:none;display:none}
 .ondamsg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--mut);font-size:14px;text-align:center;padding:0 12px;pointer-events:none}
 .ondamsg:empty{display:none}
-.rodape{grid-column:1/4;display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:12px;color:var(--mut);min-height:20px}
+.rodape{grid-column:1/3;display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:12px;color:var(--mut);min-height:20px}
 #tc{padding:8px 16px;min-height:36px;border-radius:10px;background:#242736;border:1px solid var(--line);color:var(--txt);font-size:12px;font-weight:800;letter-spacing:.06em;cursor:pointer;touch-action:none}
 #aviso{color:#ffb703}
 .dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#555;margin-right:6px;vertical-align:middle}
@@ -73,12 +73,8 @@ canvas.onda{position:absolute;inset:0;width:100%;height:100%;display:block}
 <div class="slides" id="slides">
 <div class="tela">
 <div class="app" id="app">
-  <section class="lado vazio" data-n="1" id="d1" aria-label="Deck 1"><div class="info"></div><div class="cuesbarra" aria-hidden="true"></div><div class="barra"><i></i></div><div class="stems"></div><div class="pads"></div></section>
-  <div class="centro">
-    <div class="ondawrap" data-n="1" id="o1"><canvas class="onda" aria-label="Waveform do deck 1"></canvas><div class="tatual" aria-label="Tempo atual"></div><div class="ondamsg" role="status"></div></div>
-    <div class="ondawrap" data-n="2" id="o2"><canvas class="onda" aria-label="Waveform do deck 2"></canvas><div class="tatual" aria-label="Tempo atual"></div><div class="ondamsg" role="status"></div></div>
-  </div>
-  <section class="lado vazio" data-n="2" id="d2" aria-label="Deck 2"><div class="info"></div><div class="cuesbarra" aria-hidden="true"></div><div class="barra"><i></i></div><div class="stems"></div><div class="pads"></div></section>
+  <section class="lado vazio" data-n="1" id="d1" aria-label="Deck 1"><div class="info"></div><div class="cuesbarra" aria-hidden="true"></div><div class="ondawrap" id="o1"><canvas class="onda" aria-label="Waveform do deck 1"></canvas><div class="veu"></div><div class="agulha"></div><div class="ondamsg" role="status"></div></div><div class="barra"><i></i></div><div class="stems"></div><div class="pads"></div></section>
+  <section class="lado vazio" data-n="2" id="d2" aria-label="Deck 2"><div class="info"></div><div class="cuesbarra" aria-hidden="true"></div><div class="ondawrap" id="o2"><canvas class="onda" aria-label="Waveform do deck 2"></canvas><div class="veu"></div><div class="agulha"></div><div class="ondamsg" role="status"></div></div><div class="barra"><i></i></div><div class="stems"></div><div class="pads"></div></section>
   <div class="rodape"><span><i class="dot" id="dot"></i><span id="st">conectando...</span></span><span><i class="dot" id="dotm"></i><span id="stm">MIDI: conectando...</span></span><span id="aviso" role="status"></span><span id="ms"></span><span id="tc" role="button" aria-label="Tela cheia">TELA CHEIA</span></div>
 </div>
 <div class="borda dir" id="bd" aria-label="Deslize para a esquerda: pads"></div>
@@ -101,7 +97,7 @@ const STEMS=[{rot:'VOCAL',nota:0x10},{rot:'INST',nota:0x11},{rot:'BASS',nota:0x1
 const NOTA_MASTER=0x53;       // Master (canal do deck 0/1; estado volta em 12/13)
 const NOTA_MODO=0x56;         // ActivePartMuteSolo (global, canal 0)
 const PCH=[7,9];              // canal dos pads (deck 1, deck 2) - igual ao PadBridge v1
-const JAN=2,CUR=0.3,HZ=150;  // janela do zoom (s), posicao do cursor (30% do topo) e amostras/s do detalhe PWV5
+const HZ=150;  // amostras/s do detalhe PWV5
 const corCue=c=>c.kind>0?PAL[(c.kind-1)%PAL.length]:'#9aa0b4';
 const letra=c=>c.kind>0?String.fromCharCode(64+c.kind):'M';
 const _lum=h=>{const c=[1,3,5].map(i=>parseInt(h.substr(i,2),16)/255).map(v=>v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4));return .2126*c[0]+.7152*c[1]+.0722*c[2]};
@@ -184,12 +180,12 @@ function desenha(n,d){
     '<div class="rot">DECK <b>'+n+'</b>'+mestre(n)+'</div><div class="titulo">Sem faixa carregada</div>':
     '<div class="topo"><div class="esq"><div class="rot">DECK <b>'+n+'</b>'+mestre(n)+'</div><div class="titulo">'+esc(d.titulo)+'</div><div class="artista">'+esc(d.artista||'')+'</div></div>'+
     '<div class="dir"><div class="tempo" aria-label="Tempo restante">'+esc((d.restante||'--:--').replace(/\.\d$/,''))+'</div>'+
+    '<div class="atual" aria-label="Tempo atual">'+esc((d.decorrido||'--:--').replace(/\.\d$/,''))+'</div>'+
     '<div class="meta"><div class="chip"><small>BPM</small>'+(d.bpm!=null?d.bpm.toFixed(2):'--')+'</div>'+
     '<div class="chip"><small>TOM</small>'+esc(d.tonalidade||'--')+'</div></div></div></div>';
   const info=el.querySelector('.info');if(info._html!==html){info._html=html;info.innerHTML=html}
   document.getElementById('o'+n).style.visibility=v?'hidden':'visible';
   const w=W[n],pos=d?seg(d.decorrido):null,rest=d&&d.restante?seg(d.restante.replace('-','')):null;
-  const tat=document.querySelector('#o'+n+' .tatual'),tx=d&&d.decorrido?d.decorrido.replace(/\.\d$/,''):'';if(tat.textContent!==tx)tat.textContent=tx;
   const antes=w.carregada;w.carregada=!v;if(antes!==w.carregada)aplicaPads(n-1);
   if(v||pos==null){marcas(n);w.est=null;w.medido=null;w.tocando=false;el.querySelector('.barra i').style.width='0';return}
   const agora=performance.now();
@@ -231,7 +227,7 @@ function aplicaOnda(m){
   const w=W[m.n];if(!w)return;
   if(m.vazia){w.onda=null;w.det=null;w.fonte=null;w.cues=[];w.cues_ok=false;w.msg=''}
   else if(m.pendente){w.onda=null;w.det=null;w.fonte=null;w.cues=[];w.cues_ok=false;w.msg='Carregando waveform...'}
-  else if(m.ok){w.onda=m;w.det=decodifica(m.detalhe);w.fonte=fonteDe(m,w.det);w.msg=''}
+  else if(m.ok){w.onda=m;w.det=decodifica(m.detalhe);w.fonte=fonteDe(m,w.det);w.fid=(w.fid||0)+1;w.msg=''}
   else{w.onda=null;w.det=null;w.fonte=null;w.msg='Sem waveform: '+(m.motivo||'')}
   aplicaPads(m.n-1);marcas(m.n);padsCues(m.n);
 }
@@ -243,12 +239,7 @@ function padsCues(n){
 }
 function aplicaCues(m){const w=W[m.n];if(!w)return;w.cues=m.cues||[];w.cues_ok=true;aplicaPads(m.n-1);marcas(m.n);padsCues(m.n)}
 
-// ---------- waveform vertical: o tempo corre de baixo para cima (o futuro entra por baixo) ----------
-function cor(c){const r=(c>>6)&7,g=(c>>3)&7,b=c&7,f=v=>Math.round(60+Math.max(v,1)*195/7);return 'rgb('+f(r)+','+f(g)+','+f(b)+')'}
-function zoomY(n,ms){   // y (px CSS) de um instante (ms) no canvas do deck n; o cursor fica a CUR da altura, do topo
-  const cv=document.querySelector('#o'+n+' canvas'),pos=pos_agora(W[n])||0;
-  return cv.clientHeight*CUR+(ms/1000-pos)/JAN*cv.clientHeight;
-}
+// ---------- waveform da faixa inteira (horizontal, so a metade de cima), com agulha branca e veu no que ja passou ----------
 function decodifica(b64){
   if(!b64)return null;
   const bin=atob(b64),u=new Uint16Array(bin.length>>1);
@@ -273,79 +264,52 @@ function fonteDe(o,det){
   for(let i=0;i<n;i++){const c=o.cores[i];h[i]=o.alturas[i]/31;r[i]=f((c>>6)&7);g[i]=f((c>>3)&7);b[i]=f(c&7)}
   return {n,taxa:n/(o.duracao||1),h,r,g,b};
 }
-// Desenho suave: a altura e a cor sao interpoladas entre as amostras (nada de degraus de 8 bits), a forma e um
-// poligono espelhado com gradiente de cor ao longo do tempo, mais um nucleo mais claro por cima (profundidade).
-function pintaOnda(g,F,cw,ch,dpr,pos,yc,spp,meio){
-  if(!F)return;
-  const PASSO=Math.max(2,Math.round(2*dpr)),amax=cw*0.47;
-  const ns=PASSO*spp*F.taxa;                         // amostras por passo vertical
-  const ys=[],hs=[],rs=[],gs=[],bs=[];
-  for(let y=0;y<=ch+PASSO;y+=PASSO){
-    const f=(pos+(y-yc)*spp)*F.taxa;
-    if(f<0||f>F.n-1){ys.push(y);hs.push(-1);rs.push(0);gs.push(0);bs.push(0);continue}
-    let h,r,gg,b;
-    if(ns>1.5){                                       // muitas amostras por passo: pega o pico
-      const i0=Math.max(0,Math.floor(f-ns/2)),i1=Math.min(F.n-1,Math.ceil(f+ns/2));h=-1;
-      for(let i=i0;i<=i1;i++)if(F.h[i]>h){h=F.h[i];r=F.r[i];gg=F.g[i];b=F.b[i]}
-    }else{                                            // poucas: interpola
-      const i=Math.floor(f),j=Math.min(F.n-1,i+1),u=f-i;
-      h=F.h[i]+(F.h[j]-F.h[i])*u;r=F.r[i]+(F.r[j]-F.r[i])*u;gg=F.g[i]+(F.g[j]-F.g[i])*u;b=F.b[i]+(F.b[j]-F.b[i])*u;
-    }
-    ys.push(y);hs.push(h);rs.push(r);gs.push(gg);bs.push(b);
+// A faixa inteira numa largura de tela: cada coluna de pixels pega o pico (e a media) das amostras daquele trecho.
+// Desenhada UMA vez por faixa/tamanho/cues (fica em cache no canvas); a agulha e o veu sao elementos HTML que se movem a cada quadro.
+function pintaFaixa(g,F,cw,ch,dpr,dur,cues){
+  const n=F.n,tx=F.taxa,amax=ch*0.92;
+  const H=new Float32Array(cw).fill(-1),A=new Float32Array(cw),cr=new Float32Array(cw),cg=new Float32Array(cw),cb=new Float32Array(cw);
+  for(let x=0;x<cw;x++){
+    const i0=Math.floor(x/cw*dur*tx);if(i0>=n)break;
+    const i1=Math.min(n-1,Math.max(i0,Math.floor((x+1)/cw*dur*tx)));let mx=0,soma=0,wr=0,wg=0,wb=0,wt=0;
+    for(let i=i0;i<=i1;i++){const h=F.h[i],k=h+0.02;soma+=h;if(h>mx)mx=h;wr+=F.r[i]*k;wg+=F.g[i]*k;wb+=F.b[i]*k;wt+=k}
+    H[x]=mx;A[x]=soma/(i1-i0+1);cr[x]=wr/wt;cg[x]=wg/wt;cb[x]=wb/wt;     // cor = media ponderada pela altura (sem listras)
   }
-  const forma=(esc,claro,alfa)=>{
-    let k=0;
-    while(k<ys.length){
-      while(k<ys.length&&hs[k]<0)k++;
-      let k1=k;while(k1<ys.length&&hs[k1]>=0)k1++;
-      if(k1-k>=2){
-        const ya=ys[k],yb=ys[k1-1],gr=g.createLinearGradient(0,ya,0,yb);
-        for(let m=k;m<k1;m++){
-          const mix=v=>Math.round(v+(255-v)*claro);
-          if((m-k)%4&&m!==k1-1)continue;      // a cor muda devagar: um ponto de cor a cada 4 passos basta
-          gr.addColorStop((ys[m]-ya)/(yb-ya),'rgb('+mix(rs[m])+','+mix(gs[m])+','+mix(bs[m])+')');
-        }
-        g.beginPath();
-        for(let m=k;m<k1;m++){const hh=Math.max(0.8*dpr,hs[m]*amax*esc);m===k?g.moveTo(meio-hh,ys[m]):g.lineTo(meio-hh,ys[m])}
-        for(let m=k1-1;m>=k;m--){const hh=Math.max(0.8*dpr,hs[m]*amax*esc);g.lineTo(meio+hh,ys[m])}
-        g.closePath();g.fillStyle=gr;g.globalAlpha=alfa;g.fill();
-      }
-      k=k1;
-    }
-  };
-  forma(1,0,0.92);          // corpo
-  forma(0.5,0.5,0.85);      // nucleo mais claro
+  const suave=(v,r)=>{const o=new Float32Array(cw);for(let x=0;x<cw;x++){let t=0,k=0;for(let d=-r;d<=r;d++){const w=r+1-Math.abs(d),y=Math.min(cw-1,Math.max(0,x+d));t+=v[y]*w;k+=w}o[x]=t/k}return o};
+  const S=suave(H,2),A2=suave(A,2),R=suave(cr,3),G=suave(cg,3),B=suave(cb,3);
+  for(let x=0;x<cw;x++){
+    if(H[x]<0)continue;
+    const hh=Math.max(dpr,S[x]*amax);
+    g.fillStyle='rgb('+Math.round(R[x])+','+Math.round(G[x])+','+Math.round(B[x])+')';g.fillRect(x,ch-hh,1,hh);
+  }
+  g.globalAlpha=0.4;                                                // nucleo mais claro (media), da profundidade
+  for(let x=0;x<cw;x++){
+    if(H[x]<0)continue;
+    const hh=Math.max(dpr,A2[x]*amax*0.9),mix=v=>Math.round(v+(255-v)*0.55);
+    g.fillStyle='rgb('+mix(R[x])+','+mix(G[x])+','+mix(B[x])+')';g.fillRect(x,ch-hh,1,hh);
+  }
   g.globalAlpha=1;
-  // o que ja passou (acima do cursor) fica mais escuro; so onde ha onda (source-atop nao pinta fora dela)
-  g.globalCompositeOperation='source-atop';g.fillStyle='rgba(14,15,20,.5)';g.fillRect(0,0,cw,Math.round(yc));g.globalCompositeOperation='source-over';
+  g.globalCompositeOperation='source-atop';                          // brilho no alto e sombra na base, so em cima da onda
+  const gr=g.createLinearGradient(0,0,0,ch);gr.addColorStop(0,'rgba(255,255,255,.22)');gr.addColorStop(1,'rgba(0,0,0,.3)');
+  g.fillStyle=gr;g.fillRect(0,0,cw,ch);g.globalCompositeOperation='source-over';
+  const lw=Math.max(2,Math.round(2*dpr));                            // cues: loop sombreado e linha vertical na cor do pad
+  for(const c of cues){
+    const x=Math.round(c.ms/1000/dur*cw);
+    if(c.fim!=null){const xf=Math.round(c.fim/1000/dur*cw);g.fillStyle=corCue(c);g.globalAlpha=0.25;g.fillRect(x,0,Math.max(1,xf-x),ch);g.globalAlpha=1}
+    g.fillStyle=corCue(c);g.fillRect(x-(lw>>1),0,lw,ch);
+  }
 }
 function pinta(n){
-  const w=W[n],o=w.onda,wrap=document.getElementById('o'+n),msg=wrap.querySelector('.ondamsg');
-  const {g,cw,ch,dpr}=prepara(wrap.querySelector('canvas'));
-  if(!o||!o.alturas){msg.textContent=w.msg||'';return}
-  msg.textContent='';
-  const pos=pos_agora(w)||0,yc=ch*CUR,spp=JAN/ch,meio=cw/2;
-  pintaOnda(g,w.fonte,cw,ch,dpr,pos,yc,spp,meio);
-  g.globalAlpha=1;
-  // grade de batidas: inicio de compasso = linha larga e forte; demais batidas = tracinho no meio
-  const bat=o.batidas||[],bn=o.batida_n||[];
-  for(let i=0;i<bat.length;i++){
-    const t=bat[i]/1000;if(t<pos-CUR*JAN-1||t>pos+(1-CUR)*JAN+1)continue;
-    const y=yc+(t-pos)/JAN*ch,forte=bn[i]===1;
-    g.fillStyle=forte?'rgba(255,255,255,.6)':'rgba(255,255,255,.38)';
-    if(forte)g.fillRect(0,Math.round(y)-dpr,cw,Math.max(2,dpr*2));else g.fillRect(cw*0.32,Math.round(y),cw*0.36,Math.max(1,dpr));
-  }
-  // cues: linha + etiqueta com a letra; loop sombreado; memory cue = cinza com "M"
-  g.font='bold '+Math.round(13*dpr)+'px system-ui,sans-serif';g.textAlign='center';g.textBaseline='middle';
-  for(const c of w.cues||[]){
-    const y=yc+(c.ms/1000-pos)/JAN*ch,yf=c.fim!=null?yc+(c.fim/1000-pos)/JAN*ch:null;
-    if(yf!=null&&yf>0&&y<ch){g.fillStyle=corCue(c);g.globalAlpha=0.22;const a=Math.max(0,y);g.fillRect(0,a,cw,Math.min(ch,yf)-a);g.globalAlpha=1}
-    if(y<-20*dpr||y>ch+20*dpr)continue;
-    g.fillStyle=corCue(c);g.fillRect(0,Math.round(y)-dpr,cw,Math.max(2,dpr*2));
-    const bw=(c.kind>0?22:16)*dpr;g.fillRect(0,Math.round(y)-bw,bw,bw);
-    g.fillStyle=c.kind>0?'#111':'#fff';g.fillText(letra(c),bw/2,Math.round(y)-bw/2+dpr);
-  }
-  g.fillStyle='#fff';g.fillRect(0,Math.round(yc)-dpr,cw,Math.max(2,Math.round(dpr*2)));
+  const w=W[n],o=w.onda,wrap=document.getElementById('o'+n),cv=wrap.querySelector('canvas'),msg=wrap.querySelector('.ondamsg');
+  const veu=wrap.querySelector('.veu'),ag=wrap.querySelector('.agulha');
+  const dur=(o&&o.duracao)||w.dur,pronto=!!(o&&o.alturas&&w.fonte&&dur);
+  const m=pronto?'':(w.msg||'');if(msg.textContent!==m)msg.textContent=m;
+  const dpr=window.devicePixelRatio||1,cw=Math.max(1,Math.round(cv.clientWidth*dpr)),ch=Math.max(1,Math.round(cv.clientHeight*dpr));
+  const chave=pronto?[w.fid,cw,ch,dpr,dur,(w.cues||[]).map(c=>c.kind+':'+c.ms+':'+c.fim).join(',')].join('|'):'';
+  if(cv._chave!==chave){cv._chave=chave;const {g}=prepara(cv);if(pronto)pintaFaixa(g,w.fonte,cw,ch,dpr,dur,w.cues||[])}
+  const pos=pos_agora(w),pc=pronto&&pos!=null?Math.min(100,Math.max(0,pos/dur*100)):null;
+  veu.style.display=ag.style.display=pc==null?'none':'block';
+  if(pc!=null){const t=pc.toFixed(3)+'%';veu.style.width=t;ag.style.left=t}
 }
 function laco(){pinta(1);pinta(2);requestAnimationFrame(laco)}
 

@@ -1,6 +1,6 @@
 # PadBridge v2
 
-Uma segunda tela para o **Rekordbox**, no tablet, ao lado do seu controlador DJ: **waveforms ampliadas em tempo real**, dados das faixas nos decks, cues, stems e pads, tudo em uma página só.
+Uma segunda tela para o **Rekordbox**, no tablet, ao lado do seu controlador DJ: **a waveform da faixa inteira de cada deck** (com agulha e o que já tocou escurecido), dados das faixas, cues, stems e pads, tudo em uma página só.
 
 ![Tela dos decks](docs/tela-decks.png)
 
@@ -12,8 +12,8 @@ Deslizando da borda para o lado, a tela dos **pads** (a do [PadBridge v1](https:
 
 ## O que mostra
 - **Dados de cada deck** em tempo real: título, artista, tempo restante, BPM ao vivo (acompanha o pitch), tonalidade, barra de progresso e qual deck é o **MASTER**.
-- **Waveforms verticais** no centro (o futuro sobe de baixo para cima), coloridas, com zoom de 2 s, grade de batidas/compassos, tempo atual e cursor suave.
-- **Cues**: hot cues A–H com letra e cor do pad, memory cues e loops, tanto na waveform quanto na barra de progresso. Cue criado durante o set aparece em ~2 s.
+- **Waveform da faixa inteira**, horizontal e colorida, acima da barra de progresso de cada deck: uma linha branca marca o ponto atual e a parte já tocada fica escurecida. Tempo restante, tempo atual, BPM e tom ao lado do título.
+- **Cues**: hot cues A–H com letra e cor do pad, memory cues e loops, com setas e letras acima da waveform, na posição proporcional, e linhas na própria waveform. Cue criado durante o set aparece em ~2 s.
 - **5 botões de stems** (VOCAL, INST, BASS, DRUMS e MODO mute/solo) e **8 pads de hot cue** por deck, com o tempo de cada cue.
 - **Tela de pads** completa do v1 (Hot Cue, Beat Loop, Sampler, Keyboard, SHIFT, KEY, PERF...), a um deslize de distância.
 - Botão de **tela cheia**.
