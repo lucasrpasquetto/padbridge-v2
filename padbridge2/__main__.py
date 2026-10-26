@@ -44,6 +44,49 @@ def testa_banco():
     aviso(msg)                                  # o exe nao tem console: mostra numa janela
 
 
+def diagnostico(saida="diagnostico.txt", leitor=None):
+    """Grava um relatorio com o que o programa enxerga na tela do Rekordbox (textos + posicoes), a escala do Windows e as portas MIDI.
+    Serve para descobrir por que BPM/tom/tempo nao aparecem em outro computador."""
+    import platform, traceback
+    L = [f"PadBridge diagnostico - {time.strftime('%Y-%m-%d %H:%M:%S')}", f"{platform.platform()}  python {platform.python_version()}"]
+    try:
+        import ctypes
+        u = ctypes.windll.user32
+        L.append(f"tela primaria: {u.GetSystemMetrics(0)}x{u.GetSystemMetrics(1)}")
+        for nome, f in (("DPI do sistema", lambda: u.GetDpiForSystem()),):
+            try:
+                L.append(f"{nome}: {f()} (100% = 96)")
+            except Exception as e:
+                L.append(f"{nome}: ? ({e})")
+    except Exception as e:
+        L.append(f"tela: ? ({e})")
+    try:
+        import mido
+        L.append(f"MIDI saida: {mido.get_output_names()}")
+        L.append(f"MIDI entrada: {mido.get_input_names()}")
+    except Exception as e:
+        L.append(f"MIDI: ? ({type(e).__name__})")
+    from .leitor_decks import LeitorDecks, interpreta, _ancoras
+    try:
+        lt = leitor or LeitorDecks()
+        itens = (lt._varredor or lt._varre_com)()
+        textos = [t for _, t in itens]
+        L.append(f"{len(textos)} textos/campos na janela do Rekordbox")
+        L.append(f"ancoras (numero do deck): {[(a.nome, a.x, a.y, a.w, a.h) for a in _ancoras(textos)]}")
+        for d in interpreta(textos):
+            L.append(f"deck: {d}")
+        L.append("--- tipo  x  y  w  h  nome (so o que tem texto, ordenado por posicao) ---")
+        for t in sorted(textos, key=lambda t: (t.y, t.x)):
+            if t.nome.strip():
+                L.append(f"{t.tipo}\t{t.x}\t{t.y}\t{t.w}\t{t.h}\t{t.nome.strip()[:80]!r}")
+    except Exception:
+        L.append("ERRO ao ler a janela do Rekordbox:\n" + traceback.format_exc())
+    txt = "\n".join(L) + "\n"
+    with open(saida, "w", encoding="utf-8") as f:
+        f.write(txt)
+    return txt
+
+
 def prepara_exe():
     """Exe sem janela: sem console o print quebraria; log e arquivos ficam ao lado do programa."""
     if not getattr(sys, "frozen", False):
@@ -62,6 +105,7 @@ def main():
     ap.add_argument("--sem-onda", action="store_true", help="nao busca a waveform no banco")
     ap.add_argument("--console", action="store_true", help="roda no terminal, sem icone na bandeja")
     ap.add_argument("--ajudante", action="store_true", help="(interno) roda como ajudante de banco, por stdin/stdout")
+    ap.add_argument("--diagnostico", action="store_true", help="grava diagnostico.txt com o que o programa enxerga no Rekordbox e sai")
     ap.add_argument("--testa-banco", action="store_true", help="abre o banco do Rekordbox, mostra o resultado e sai")
     a, resto = ap.parse_known_args()      # o resto (--wifi, --debug, --http...) e do v1
     try:
@@ -71,6 +115,11 @@ def main():
                 sys.stdin = open(0, encoding="utf-8", closefd=False)
                 sys.stdout = open(1, "w", encoding="utf-8", buffering=1, closefd=False)
             ajudante_db.main()
+        elif a.diagnostico:
+            txt = diagnostico()
+            print(txt)
+            from .bandeja import aviso
+            aviso("Gerei o arquivo diagnostico.txt ao lado do programa. Envie-o para analise.\n\n" + txt[:600])
         elif a.testa_banco:
             testa_banco()
         elif a.terminal:

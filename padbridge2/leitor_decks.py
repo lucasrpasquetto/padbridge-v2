@@ -17,12 +17,19 @@ RE_FRACAO = re.compile(r"^\.\d$")
 NAO_CARREGADA = {"not loaded.", "not loaded"}
 
 
+# Todas as medidas abaixo foram tiradas com a tela em 100% (o numero do deck mede 12 px de altura). Em outra escala do Windows
+# (125%, 150%...) ou outro tamanho de janela, tudo cresce junto: `_k(ancora)` e a razao (altura medida / 12) e escala os limites.
+def _k(a):
+    return min(3.0, max(0.7, a.h / 12.0))
+
+
 def _ancoras(textos):
-    """Numero do deck (1..4): texto pequeno ('1') com um titulo grande (h>=16, w>=200) logo a direita, na mesma linha."""
+    """Numero do deck (1..4): texto pequeno ('1', quadrado) com um titulo grande logo a direita, na mesma linha."""
     r = []
     for t in textos:
-        if t.nome in ("1", "2", "3", "4") and t.w <= 16 and t.h <= 16:
-            tit = [u for u in textos if u.h >= 16 and u.w >= 200 and t.x + 20 <= u.x <= t.x + 140 and abs(u.y - t.y) <= 8]
+        if t.nome in ("1", "2", "3", "4") and t.w <= 2 * t.h and 8 <= t.h <= 36:
+            k = _k(t)
+            tit = [u for u in textos if u.h >= 1.3 * t.h and u.w >= 200 * k and t.x + 20 * k <= u.x <= t.x + 140 * k and abs(u.y - t.y) <= 8 * k]
             if tit:
                 r.append(t)
     return sorted(r, key=lambda a: a.x)
@@ -33,11 +40,12 @@ def interpreta(textos):
     ancoras = _ancoras(textos)
     decks = []
     for i, a in enumerate(ancoras):
-        x_fim = ancoras[i + 1].x if i + 1 < len(ancoras) else a.x + 1200
-        faixa = [t for t in textos if a.x <= t.x < x_fim and a.y - 6 <= t.y <= a.y + 40]
+        k = _k(a)
+        x_fim = ancoras[i + 1].x if i + 1 < len(ancoras) else a.x + 1200 * k
+        faixa = [t for t in textos if a.x <= t.x < x_fim and a.y - 6 * k <= t.y <= a.y + 40 * k]
         d = dict(n=int(a.nome), carregada=False, titulo=None, artista=None, bpm=None, bpm_faixa=None, tonalidade=None,
                  restante=None, decorrido=None)
-        grandes = [t for t in faixa if t.h >= 16 and t.w >= 200]
+        grandes = [t for t in faixa if t.h >= 1.3 * a.h and t.w >= 200 * k]
         if grandes:
             titulo = grandes[0].nome.strip()
             if titulo.lower() not in NAO_CARREGADA and titulo:
@@ -45,18 +53,18 @@ def interpreta(textos):
         for t in sorted((t for t in faixa if t not in grandes), key=lambda t: (t.y // 8, t.x)):
             n = t.nome.strip()
             if RE_TEMPO.match(n):
-                frac = next((f.nome for f in faixa if RE_FRACAO.match(f.nome) and abs(f.x - (t.x + t.w)) <= 8 and abs(f.y - t.y) <= 4), "")
+                frac = next((f.nome for f in faixa if RE_FRACAO.match(f.nome) and abs(f.x - (t.x + t.w)) <= 8 * k and abs(f.y - t.y) <= 4 * k), "")
                 chave = "restante" if n.startswith("-") else "decorrido"
                 if d[chave] is None:
                     d[chave] = n + frac
-            elif RE_BPM.match(n) and d["bpm"] is None and t.h <= 14:
+            elif RE_BPM.match(n) and d["bpm"] is None and t.h <= 1.2 * a.h:
                 d["bpm"] = d["bpm_faixa"] = float(n)      # o texto do cabecalho e o BPM da FAIXA (nao muda com o pitch)
-            elif RE_CHAVE.match(n) and d["tonalidade"] is None and t.h <= 14 and (d["bpm"] is not None or d["artista"] is not None):
+            elif RE_CHAVE.match(n) and d["tonalidade"] is None and t.h <= 1.2 * a.h and (d["bpm"] is not None or d["artista"] is not None):
                 d["tonalidade"] = n
-            elif d["artista"] is None and t.h <= 14 and t.y >= a.y + 15 and d["bpm"] is None and not RE_TEMPO.match(n) and not RE_FRACAO.match(n):
+            elif d["artista"] is None and t.h <= 1.2 * a.h and t.y >= a.y + 15 * k and d["bpm"] is None and not RE_TEMPO.match(n) and not RE_FRACAO.match(n):
                 d["artista"] = n
         # BPM ao vivo (com o pitch): campo "Edit" do painel de tempo do deck, mais abaixo; medido: muda quando se mexe no pitch
-        vivo = [t for t in textos if t.tipo == "Edit" and RE_BPM.match(t.nome.strip()) and a.x <= t.x < x_fim and a.y + 100 <= t.y <= a.y + 320]
+        vivo = [t for t in textos if t.tipo == "Edit" and RE_BPM.match(t.nome.strip()) and a.x <= t.x < x_fim and a.y + 100 * k <= t.y <= a.y + 320 * k]
         if vivo and d["bpm"] is not None:
             d["bpm"] = float(vivo[0].nome.strip())
         if not d["carregada"]:
@@ -111,7 +119,7 @@ def so_faixa_dos_decks(itens):
     if not ancoras:
         return []
     return [(el, t) for el, t in itens
-            if any((a.y - 6 <= t.y <= a.y + 40 or (t.tipo == "Edit" and a.y + 100 <= t.y <= a.y + 320)) and t.x >= a.x for a in ancoras)]
+            if any((a.y - 6 * _k(a) <= t.y <= a.y + 40 * _k(a) or (t.tipo == "Edit" and a.y + 100 * _k(a) <= t.y <= a.y + 320 * _k(a))) and t.x >= a.x for a in ancoras)]
 
 
 def _acha_janela_lenta():

@@ -16,6 +16,14 @@ e = dict(n=1, carregada=True, titulo="Oh La La", artista="2 Eivissa", bpm=130.46
 dd = dict(n=2, carregada=True, titulo="Candy Shop (Acapella 125 BPM)", artista="50 Cent", bpm=85.15, bpm_faixa=95.24, tonalidade="12A", restante="-02:54.7", decorrido="00:00.4")
 ok(d[0] == e, f"deck 1: {d[0]}"); ok(d[1] == dd, f"deck 2: {d[1]}")
 
+# outra escala do Windows (125%, 150%, 200%): as medidas crescem juntas e o resultado tem que ser o mesmo
+for esc in (1.25, 1.5, 2.0):
+    te = [Texto(x.nome, round(x.x * esc), round(x.y * esc), round(x.w * esc), round(x.h * esc), x.tipo) for x in t]
+    de = interpreta(te)
+    ok(de == d, f"escala {esc}: mesmo resultado ({[(x['n'], x['titulo'], x['bpm'], x['tonalidade'], x['artista']) for x in de]})")
+    itens = [(i, x) for i, x in enumerate(te)]
+    ok(interpreta([x for _, x in so_faixa_dos_decks(itens)]) == d, f"escala {esc}: o filtro de cache mantem o que importa")
+
 # deck vazio: o titulo vira 'Not Loaded.'
 t2 = [Texto("Not Loaded.", x.x, x.y, x.w, x.h) if x.nome == "Candy Shop (Acapella 125 BPM)" else x for x in t]
 v = interpreta(t2)[1]
